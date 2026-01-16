@@ -1,15 +1,15 @@
 
 import React, { useState, useEffect } from 'react';
 import { AppView, SessionConfig, SessionRecord, User } from './types';
-import { DEFAULT_CONFIG, STORAGE_KEY } from './constants';
+import { DEFAULT_CONFIG } from './constants';
+import { supabase } from './lib/supabase';
+import { getUserSessions, saveSession } from './services/databaseService';
 import Dashboard from './components/Dashboard';
 import SetupForm from './components/SetupForm';
 import InterviewSession from './components/InterviewSession';
 import FeedbackView from './components/FeedbackView';
 import AuthView from './components/AuthView';
 import LandingView from './components/LandingView';
-
-const CURRENT_USER_KEY = 'entrevistia_current_user';
 
 const App: React.FC = () => {
   const [user, setUser] = useState<User | null>(null);
@@ -18,52 +18,62 @@ const App: React.FC = () => {
   const [sessions, setSessions] = useState<SessionRecord[]>([]);
   const [currentConfig, setCurrentConfig] = useState<SessionConfig>(DEFAULT_CONFIG);
   const [activeSession, setActiveSession] = useState<SessionRecord | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const savedUser = localStorage.getItem(CURRENT_USER_KEY);
-    if (savedUser) {
-      const parsedUser = JSON.parse(savedUser);
-      setUser(parsedUser);
-      setView(AppView.DASHBOARD);
-      loadSessions(parsedUser.id);
+    if (!supabase) {
+      setIsLoading(false);
+      return;
     }
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (session?.user) {
+        const loggedUser: User = {
+          id: session.user.id,
+          name: session.user.user_metadata.full_name || session.user.email?.split('@')[0] || 'Usuario',
+          email: session.user.email!,
+          preferredRole: session.user.user_metadata.preferred_role || ''
+        };
+        setUser(loggedUser);
+        setView(prev => (prev === AppView.AUTH || prev === AppView.LANDING) ? AppView.DASHBOARD : prev);
+        fetchSessions(session.user.id);
+      } else {
+        setUser(null);
+        setSessions([]);
+        setView(AppView.LANDING);
+      }
+      setIsLoading(false);
+    });
+
+    return () => subscription.unsubscribe();
   }, []);
 
-  const loadSessions = (userId: string) => {
-    const saved = localStorage.getItem(STORAGE_KEY);
-    if (saved) {
-      try {
-        const allSessions: SessionRecord[] = JSON.parse(saved);
-        setSessions(allSessions.filter(s => s.userId === userId));
-      } catch (e) {
-        console.error("Error cargando sesiones", e);
-      }
+  const fetchSessions = async (userId: string) => {
+    if (!supabase) return;
+    const data = await getUserSessions(userId);
+    setSessions(data);
+  };
+
+  const handleLogout = async () => {
+    if (supabase) {
+      await supabase.auth.signOut();
+    } else {
+      setUser(null);
+      setView(AppView.LANDING);
     }
   };
 
-  const handleAuthSuccess = (loggedUser: User) => {
-    setUser(loggedUser);
-    localStorage.setItem(CURRENT_USER_KEY, JSON.stringify(loggedUser));
-    loadSessions(loggedUser.id);
-    setView(AppView.DASHBOARD);
-  };
-
-  const handleLogout = () => {
-    setUser(null);
-    localStorage.removeItem(CURRENT_USER_KEY);
-    setSessions([]);
-    setView(AppView.LANDING);
-  };
-
-  const handleFinishSession = (record: SessionRecord) => {
-    const saved = localStorage.getItem(STORAGE_KEY);
-    let allSessions: SessionRecord[] = saved ? JSON.parse(saved) : [];
-    const updatedAll = [record, ...allSessions];
-    
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(updatedAll));
-    setSessions([record, ...sessions]);
-    setActiveSession(record);
-    setView(AppView.FEEDBACK);
+  const handleFinishSession = async (record: Omit<SessionRecord, 'id'>) => {
+    const saved = await saveSession(record);
+    if (saved) {
+      setSessions([saved, ...sessions]);
+      setActiveSession(saved);
+      setView(AppView.FEEDBACK);
+    } else {
+      const fallbackRecord: SessionRecord = { ...record, id: Math.random().toString(36).substr(2, 9) };
+      setActiveSession(fallbackRecord);
+      setView(AppView.FEEDBACK);
+    }
   };
 
   const handleViewSession = (record: SessionRecord) => {
@@ -76,18 +86,28 @@ const App: React.FC = () => {
     setView(AppView.AUTH);
   };
 
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-[#020617] flex items-center justify-center">
+        <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+      </div>
+    );
+  }
+
+  // Define background class based on view
+  const isMarketingView = view === AppView.LANDING || view === AppView.AUTH;
+  const bgClass = isMarketingView ? 'mesh-bg' : 'dashboard-grid';
+
   const renderView = () => {
-    // Si no hay usuario, solo permitir Landing o Auth
     if (!user && view !== AppView.LANDING && view !== AppView.AUTH) {
-        setView(AppView.LANDING);
-        return null;
+        return <LandingView onGetStarted={() => openAuth('register')} onLogin={() => openAuth('login')} />;
     }
 
     switch (view) {
       case AppView.LANDING:
         return <LandingView onGetStarted={() => openAuth('register')} onLogin={() => openAuth('login')} />;
       case AppView.AUTH:
-        return <AuthView initialMode={authMode} onAuthSuccess={handleAuthSuccess} onBack={() => setView(AppView.LANDING)} />;
+        return <AuthView initialMode={authMode} onBack={() => setView(AppView.LANDING)} />;
       case AppView.DASHBOARD:
         return <Dashboard user={user!} sessions={sessions} onStart={() => setView(AppView.SETUP)} onViewSession={handleViewSession} />;
       case AppView.SETUP:
@@ -102,23 +122,29 @@ const App: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className={`min-h-screen flex flex-col transition-colors duration-1000 ${bgClass}`}>
       {user && (
-        <header className="fixed top-6 left-1/2 -translate-x-1/2 z-[100] w-[95%] max-w-5xl">
-          <div className="glass px-6 py-4 rounded-2xl flex items-center justify-between shadow-2xl border-white/5">
+        <header className="fixed top-6 left-1/2 -translate-x-1/2 z-[100] w-[95%] max-w-7xl">
+          <div className="glass px-6 py-3 rounded-xl flex items-center justify-between shadow-2xl border-white/5">
             <div className="flex items-center gap-3 cursor-pointer" onClick={() => setView(AppView.DASHBOARD)}>
-              <div className="w-9 h-9 bg-blue-600 rounded-xl flex items-center justify-center text-white font-bold text-xl">
+              <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center text-white font-bold text-lg">
                 <i className="ph-bold ph-lightning"></i>
               </div>
-              <span className="text-xl font-extrabold tracking-tight text-white uppercase italic">EntrevistIA</span>
+              <span className="text-lg font-black tracking-tighter text-white uppercase italic">EntrevistIA</span>
             </div>
-            <nav className="flex gap-4 items-center">
-              <button onClick={handleLogout} className="text-[10px] font-black text-slate-500 uppercase tracking-widest hover:text-red-400 transition-colors">Cerrar Sesión</button>
+            <nav className="flex gap-6 items-center">
+              <button 
+                onClick={() => setView(AppView.DASHBOARD)}
+                className={`text-[10px] font-black uppercase tracking-widest transition-colors ${view === AppView.DASHBOARD ? 'text-blue-400' : 'text-slate-400 hover:text-white'}`}
+              >
+                Dashboard
+              </button>
+              <button onClick={handleLogout} className="text-[10px] font-black text-slate-500 uppercase tracking-widest hover:text-red-400 transition-colors bg-white/5 px-4 py-2 rounded-lg border border-white/5">Cerrar Sesión</button>
             </nav>
           </div>
         </header>
       )}
-      <main className={`flex-1 ${user ? 'pt-32' : 'pt-10'} pb-20 px-4 max-w-7xl mx-auto w-full`}>
+      <main className={`flex-1 ${user ? 'pt-32' : 'pt-0'} pb-20 px-4 max-w-7xl mx-auto w-full`}>
         {renderView()}
       </main>
     </div>

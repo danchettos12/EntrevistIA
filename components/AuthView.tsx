@@ -1,58 +1,54 @@
 
 import React, { useState } from 'react';
-import { User } from '../types';
+import { supabase } from '../lib/supabase';
 
 interface AuthViewProps {
-  onAuthSuccess: (user: User) => void;
   onBack: () => void;
   initialMode?: 'login' | 'register';
 }
 
-const AuthView: React.FC<AuthViewProps> = ({ onAuthSuccess, onBack, initialMode = 'login' }) => {
+const AuthView: React.FC<AuthViewProps> = ({ onBack, initialMode = 'login' }) => {
   const [isLogin, setIsLogin] = useState(initialMode === 'login');
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
 
-  const USERS_KEY = 'entrevistia_users';
-
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    setLoading(true);
 
-    const savedUsers = JSON.parse(localStorage.getItem(USERS_KEY) || '[]');
-
-    if (isLogin) {
-      const user = savedUsers.find((u: User) => u.email === email && u.password === password);
-      if (user) {
-        onAuthSuccess(user);
+    try {
+      if (isLogin) {
+        const { error } = await supabase.auth.signInWithPassword({
+          email,
+          password,
+        });
+        if (error) throw error;
       } else {
-        setError('Credenciales inválidas. Por favor intenta de nuevo.');
+        if (!name || !email || !password) {
+          throw new Error('Todos los campos son obligatorios.');
+        }
+        
+        const { error } = await supabase.auth.signUp({
+          email,
+          password,
+          options: {
+            data: {
+              full_name: name,
+            }
+          }
+        });
+        if (error) throw error;
+        setError('¡Cuenta creada! Revisa tu email para confirmar o intenta iniciar sesión.');
       }
-    } else {
-      if (!name || !email || !password) {
-        setError('Todos los campos son obligatorios.');
-        return;
-      }
-      
-      if (savedUsers.some((u: User) => u.email === email)) {
-        setError('Este correo ya está registrado.');
-        return;
-      }
-
-      const newUser: User = {
-        id: Math.random().toString(36).substr(2, 9),
-        name,
-        email,
-        password,
-        preferredRole: ''
-      };
-
-      const updatedUsers = [...savedUsers, newUser];
-      localStorage.setItem(USERS_KEY, JSON.stringify(updatedUsers));
-      onAuthSuccess(newUser);
+    } catch (err: any) {
+      setError(err.message || 'Ocurrió un error inesperado.');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -88,6 +84,7 @@ const AuthView: React.FC<AuthViewProps> = ({ onAuthSuccess, onBack, initialMode 
                 <input 
                   type="text" 
                   value={name}
+                  required
                   onChange={(e) => setName(e.target.value)}
                   className="w-full bg-white/5 border border-white/10 rounded-2xl px-5 py-4 text-white outline-none focus:border-blue-500 transition-all"
                   placeholder="Ej. Juan Pérez"
@@ -100,6 +97,7 @@ const AuthView: React.FC<AuthViewProps> = ({ onAuthSuccess, onBack, initialMode 
               <input 
                 type="email" 
                 value={email}
+                required
                 onChange={(e) => setEmail(e.target.value)}
                 className="w-full bg-white/5 border border-white/10 rounded-2xl px-5 py-4 text-white outline-none focus:border-blue-500 transition-all"
                 placeholder="email@ejemplo.com"
@@ -111,6 +109,7 @@ const AuthView: React.FC<AuthViewProps> = ({ onAuthSuccess, onBack, initialMode 
               <input 
                 type="password" 
                 value={password}
+                required
                 onChange={(e) => setPassword(e.target.value)}
                 className="w-full bg-white/5 border border-white/10 rounded-2xl px-5 py-4 text-white outline-none focus:border-blue-500 transition-all"
                 placeholder="••••••••"
@@ -118,16 +117,17 @@ const AuthView: React.FC<AuthViewProps> = ({ onAuthSuccess, onBack, initialMode 
             </div>
 
             {error && (
-              <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-2xl text-red-400 text-[11px] font-bold text-center">
+              <div className={`p-4 rounded-2xl text-[11px] font-bold text-center border ${error.includes('Cuenta creada') ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' : 'bg-red-500/10 border-red-500/20 text-red-400'}`}>
                 {error}
               </div>
             )}
 
             <button 
               type="submit"
-              className="w-full bg-blue-600 hover:bg-blue-500 text-white font-black py-5 rounded-2xl shadow-xl shadow-blue-600/20 transition-all transform hover:scale-[1.02] active:scale-[0.98] uppercase text-xs tracking-[0.2em] mt-4"
+              disabled={loading}
+              className="w-full bg-blue-600 hover:bg-blue-500 text-white font-black py-5 rounded-2xl shadow-xl shadow-blue-600/20 transition-all transform hover:scale-[1.02] active:scale-[0.98] uppercase text-xs tracking-[0.2em] mt-4 disabled:opacity-50"
             >
-              {isLogin ? 'Entrar al Dashboard' : 'Crear Mi Cuenta'}
+              {loading ? 'Procesando...' : isLogin ? 'Entrar al Dashboard' : 'Crear Mi Cuenta'}
             </button>
           </form>
 
