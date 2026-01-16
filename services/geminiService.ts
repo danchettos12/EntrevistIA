@@ -2,7 +2,9 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { SessionConfig, QuestionFeedback } from "../types";
 
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+// Acceso seguro a la API KEY inyectada por Vite/Vercel
+const API_KEY = (process.env.API_KEY as string) || "";
+const ai = new GoogleGenAI({ apiKey: API_KEY });
 
 const FEEDBACK_SCHEMA = {
   type: Type.OBJECT,
@@ -33,15 +35,16 @@ const FEEDBACK_SCHEMA = {
       required: ['situation', 'task', 'action', 'result', 'score']
     },
     toneScore: { type: Type.NUMBER },
-    toneExplanation: { type: Type.STRING, description: 'Breve explicación de por qué se asignó ese puntaje de tono.' },
+    toneExplanation: { type: Type.STRING },
     assertivenessScore: { type: Type.NUMBER },
-    assertivenessExplanation: { type: Type.STRING, description: 'Breve explicación de por qué se asignó ese puntaje de asertividad.' },
+    assertivenessExplanation: { type: Type.STRING },
     generalFeedback: { type: Type.STRING }
   },
   required: ['originalResponse', 'idealResponse', 'highlights', 'starAnalysis', 'toneScore', 'toneExplanation', 'assertivenessScore', 'assertivenessExplanation', 'generalFeedback']
 };
 
 export const transcribeAudio = async (base64Audio: string, mimeType: string): Promise<string> => {
+  if (!API_KEY) return "Error: API_KEY no configurada";
   const response = await ai.models.generateContent({
     model: 'gemini-3-flash-preview',
     contents: [
@@ -54,7 +57,7 @@ export const transcribeAudio = async (base64Audio: string, mimeType: string): Pr
             }
           },
           {
-            text: "Transcribe exactamente lo que se dice en este audio. Solo devuelve el texto transcrito, nada más. Si no hay audio o no se entiende, devuelve una cadena vacía."
+            text: "Transcribe exactamente lo que se dice en este audio. Solo devuelve el texto transcrito, nada más."
           }
         ]
       }
@@ -66,8 +69,8 @@ export const transcribeAudio = async (base64Audio: string, mimeType: string): Pr
 export const generateInterviewQuestion = async (config: SessionConfig, previousQuestions: string[] = []): Promise<string> => {
   const prompt = `Actúa como un entrevistador de alto nivel para el puesto: ${config.role}. 
   Nivel de presión: ${config.pressure}/100. Enfoque: ${config.focus}/100.
-  Preguntas ya realizadas para evitar repetición: ${previousQuestions.join(', ')}.
-  Genera una pregunta desafiante que requiera una respuesta estructurada. Solo devuelve el texto de la pregunta.`;
+  Preguntas ya realizadas: ${previousQuestions.join(', ')}.
+  Genera una pregunta desafiante que requiera una respuesta estructurada.`;
 
   const response = await ai.models.generateContent({
     model: 'gemini-3-flash-preview',
@@ -86,11 +89,7 @@ export const analyzeQuestionResponse = async (
   Respuesta del Candidato: "${userResponse}"
   Puesto: ${config.role}
   
-  Instrucciones para MODO ESPEJO: Crea una 'idealResponse' que sea la respuesta del usuario pero mejorada significativamente. Mantén los hechos que el usuario mencionó pero estructúralos bajo el método STAR con un lenguaje mucho más profesional, asertivo y de nivel senior.
-  
-  Analiza también el Tono (profesionalismo, calidez, entusiasmo) y la Asertividad (seguridad, claridad, impacto). Proporciona una explicación breve para cada puntaje de 0 a 100.
-  
-  Devuelve el análisis en formato JSON.`;
+  Devuelve el análisis en formato JSON siguiendo el método STAR y proporcionando feedback de élite.`;
 
   const response = await ai.models.generateContent({
     model: 'gemini-3-pro-preview',
@@ -111,22 +110,10 @@ export const generateSessionSummary = async (
 ): Promise<{ overallSummary: string, fillerWordAnalysis: string, mistakes: string[], overallScore: number }> => {
   const transcript = questions.map(q => `P: ${q.question}\nR: ${q.originalResponse}`).join('\n\n');
   
-  const prompt = `Actúa como un Coach de Carrera Senior. Analiza el rendimiento global de esta sesión de entrevista:
+  const prompt = `Actúa como un Coach de Carrera Senior. Analiza el rendimiento global:
   ${transcript}
-  
-  Contexto del puesto: ${config.role}.
-  
-  Requisitos:
-  1. 'overallSummary': Un resumen ejecutivo de su desempeño.
-  2. 'fillerWordAnalysis': Identifica muletillas específicas usadas (ehh, este, como, mmm, ya sabes, etc.). 
-     IMPORTANTE: No te limites a listarlas. Para cada vicio detectado, proporciona:
-     - El impacto negativo que tiene en la percepción del reclutador.
-     - Un ejemplo concreto de cómo reemplazar esa muletilla por una "Pausa Estratégica" o una "Palabra Conectora Asertiva" (ej: en lugar de 'bueno...', usar 'específicamente...' o simplemente silencio).
-     Usa un tono de mentoría profesional.
-  3. 'mistakes': Una lista de máximo 5 puntos donde el candidato "la cagó".
-  4. 'overallScore': Puntaje de 0 a 100.
-  
-  Devuelve JSON riguroso.`;
+  Contexto: ${config.role}.
+  Identifica vicios de lenguaje, errores críticos y puntaje global.`;
 
   const response = await ai.models.generateContent({
     model: 'gemini-3-pro-preview',
