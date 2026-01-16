@@ -22,7 +22,6 @@ const App: React.FC = () => {
 
   useEffect(() => {
     if (!supabase || !supabase.auth) {
-      console.warn("Supabase no detectado - Operando en modo local.");
       setIsLoading(false);
       return;
     }
@@ -41,7 +40,7 @@ const App: React.FC = () => {
       } else {
         setUser(null);
         setSessions([]);
-        if (view !== AppView.LANDING) setView(AppView.LANDING);
+        if (view !== AppView.LANDING && view !== AppView.AUTH) setView(AppView.LANDING);
       }
       setIsLoading(false);
     });
@@ -58,21 +57,9 @@ const App: React.FC = () => {
   const handleLogout = async () => {
     if (supabase && supabase.auth) {
       await supabase.auth.signOut();
-    } else {
-      setUser(null);
-      setView(AppView.LANDING);
     }
-  };
-
-  const handleGuestMode = () => {
-    const guestUser: User = {
-        id: 'guest',
-        name: 'Invitado Profesional',
-        email: 'invitado@entrevistia.ai',
-        preferredRole: 'Consultor Senior'
-    };
-    setUser(guestUser);
-    setView(AppView.DASHBOARD);
+    setUser(null);
+    setView(AppView.LANDING);
   };
 
   const handleFinishSession = async (record: Omit<SessionRecord, 'id'>) => {
@@ -82,6 +69,7 @@ const App: React.FC = () => {
       setActiveSession(saved);
       setView(AppView.FEEDBACK);
     } else {
+      // Fallback visual en caso de error de red, aunque se recomienda persistencia real
       const fallbackRecord: SessionRecord = { ...record, id: Math.random().toString(36).substr(2, 9) };
       setActiveSession(fallbackRecord);
       setView(AppView.FEEDBACK);
@@ -112,9 +100,9 @@ const App: React.FC = () => {
   const renderView = () => {
     switch (view) {
       case AppView.LANDING:
-        return <LandingView onGetStarted={() => openAuth('register')} onLogin={() => openAuth('login')} onGuest={handleGuestMode} />;
+        return <LandingView onGetStarted={() => openAuth('register')} onLogin={() => openAuth('login')} />;
       case AppView.AUTH:
-        return <AuthView initialMode={authMode} onBack={() => setView(AppView.LANDING)} onGuest={handleGuestMode} />;
+        return <AuthView initialMode={authMode} onBack={() => setView(AppView.LANDING)} />;
       case AppView.DASHBOARD:
         return <Dashboard user={user!} sessions={sessions} onStart={() => setView(AppView.SETUP)} onViewSession={handleViewSession} />;
       case AppView.SETUP:
@@ -124,7 +112,7 @@ const App: React.FC = () => {
       case AppView.FEEDBACK:
         return <FeedbackView session={activeSession!} onClose={() => setView(AppView.DASHBOARD)} />;
       default:
-        return <LandingView onGetStarted={() => openAuth('register')} onLogin={() => openAuth('login')} onGuest={handleGuestMode} />;
+        return <LandingView onGetStarted={() => openAuth('register')} onLogin={() => openAuth('login')} />;
     }
   };
 
