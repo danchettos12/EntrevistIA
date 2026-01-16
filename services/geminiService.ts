@@ -2,9 +2,8 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { SessionConfig, QuestionFeedback } from "../types";
 
-// Acceso seguro a la API KEY inyectada por Vite/Vercel
-const API_KEY = (process.env.API_KEY as string) || "";
-const ai = new GoogleGenAI({ apiKey: API_KEY });
+// Inicialización siguiendo estrictamente las guías del SDK
+const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || "" });
 
 const FEEDBACK_SCHEMA = {
   type: Type.OBJECT,
@@ -44,7 +43,6 @@ const FEEDBACK_SCHEMA = {
 };
 
 export const transcribeAudio = async (base64Audio: string, mimeType: string): Promise<string> => {
-  if (!API_KEY) return "Error: API_KEY no configurada";
   const response = await ai.models.generateContent({
     model: 'gemini-3-flash-preview',
     contents: [
@@ -57,7 +55,7 @@ export const transcribeAudio = async (base64Audio: string, mimeType: string): Pr
             }
           },
           {
-            text: "Transcribe exactamente lo que se dice en este audio. Solo devuelve el texto transcrito, nada más."
+            text: "Transcribe exactamente lo que se dice en este audio profesional. Solo devuelve el texto transcrito, nada más."
           }
         ]
       }
@@ -68,15 +66,15 @@ export const transcribeAudio = async (base64Audio: string, mimeType: string): Pr
 
 export const generateInterviewQuestion = async (config: SessionConfig, previousQuestions: string[] = []): Promise<string> => {
   const prompt = `Actúa como un entrevistador de alto nivel para el puesto: ${config.role}. 
-  Nivel de presión: ${config.pressure}/100. Enfoque: ${config.focus}/100.
-  Preguntas ya realizadas: ${previousQuestions.join(', ')}.
-  Genera una pregunta desafiante que requiera una respuesta estructurada.`;
+  Rigor de la evaluación: ${config.pressure}/100. Enfoque técnico/conductual: ${config.focus}/100.
+  Preguntas ya realizadas para evitar repetición: ${previousQuestions.join(', ')}.
+  Genera una pregunta desafiante que requiera una respuesta estructurada bajo estándares corporativos.`;
 
   const response = await ai.models.generateContent({
     model: 'gemini-3-flash-preview',
     contents: prompt
   });
-  return response.text || "Hubo un error generando la pregunta.";
+  return response.text || "Hubo un error al generar la pregunta de evaluación.";
 };
 
 export const analyzeQuestionResponse = async (
@@ -84,12 +82,12 @@ export const analyzeQuestionResponse = async (
   userResponse: string,
   config: SessionConfig
 ): Promise<QuestionFeedback> => {
-  const prompt = `Analiza detalladamente esta respuesta de entrevista:
+  const prompt = `Analiza detalladamente esta respuesta de entrevista bajo estándares profesionales:
   Pregunta: "${question}"
   Respuesta del Candidato: "${userResponse}"
-  Puesto: ${config.role}
+  Cargo Objetivo: ${config.role}
   
-  Devuelve el análisis en formato JSON siguiendo el método STAR y proporcionando feedback de élite.`;
+  Devuelve el análisis en formato JSON siguiendo el método STAR y proporcionando una retroalimentación técnica exhaustiva.`;
 
   const response = await ai.models.generateContent({
     model: 'gemini-3-pro-preview',
@@ -108,12 +106,12 @@ export const generateSessionSummary = async (
   questions: QuestionFeedback[],
   config: SessionConfig
 ): Promise<{ overallSummary: string, fillerWordAnalysis: string, mistakes: string[], overallScore: number }> => {
-  const transcript = questions.map(q => `P: ${q.question}\nR: ${q.originalResponse}`).join('\n\n');
+  const transcript = questions.map(q => `Pregunta: ${q.question}\nRespuesta: ${q.originalResponse}`).join('\n\n');
   
-  const prompt = `Actúa como un Coach de Carrera Senior. Analiza el rendimiento global:
+  const prompt = `Actúa como un Consultor de Selección Senior. Analiza el rendimiento global de la sesión de práctica:
   ${transcript}
-  Contexto: ${config.role}.
-  Identifica vicios de lenguaje, errores críticos y puntaje global.`;
+  Contexto del Cargo: ${config.role}.
+  Identifica vicios de lenguaje, omisiones críticas en el método STAR y asigna una calificación de competencia global del 0 al 100.`;
 
   const response = await ai.models.generateContent({
     model: 'gemini-3-pro-preview',

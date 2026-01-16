@@ -21,14 +21,13 @@ const App: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Si no hay Supabase, mostramos la landing y permitimos modo invitado más adelante
     if (!supabase || !supabase.auth) {
       console.warn("Supabase no detectado - Operando en modo local.");
       setIsLoading(false);
       return;
     }
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event: any, session: any) => {
       if (session?.user) {
         const loggedUser: User = {
           id: session.user.id,
@@ -48,7 +47,7 @@ const App: React.FC = () => {
     });
 
     return () => subscription.unsubscribe();
-  }, []);
+  }, [view]);
 
   const fetchSessions = async (userId: string) => {
     if (!supabase) return;
@@ -68,9 +67,9 @@ const App: React.FC = () => {
   const handleGuestMode = () => {
     const guestUser: User = {
         id: 'guest',
-        name: 'Invitado Elite',
-        email: 'guest@entrevistia.ai',
-        preferredRole: 'Senior Developer'
+        name: 'Invitado Profesional',
+        email: 'invitado@entrevistia.ai',
+        preferredRole: 'Consultor Senior'
     };
     setUser(guestUser);
     setView(AppView.DASHBOARD);
@@ -83,7 +82,6 @@ const App: React.FC = () => {
       setActiveSession(saved);
       setView(AppView.FEEDBACK);
     } else {
-      // Fallback local si Supabase falla o no existe
       const fallbackRecord: SessionRecord = { ...record, id: Math.random().toString(36).substr(2, 9) };
       setActiveSession(fallbackRecord);
       setView(AppView.FEEDBACK);
@@ -137,13 +135,13 @@ const App: React.FC = () => {
           <div className="glass px-6 py-3 rounded-xl flex items-center justify-between shadow-2xl border-white/5">
             <div className="flex items-center gap-3 cursor-pointer" onClick={() => setView(AppView.DASHBOARD)}>
               <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center text-white font-bold text-lg">
-                <i className="ph-bold ph-lightning"></i>
+                <i className="ph-bold ph-briefcase"></i>
               </div>
-              <span className="text-lg font-black tracking-tighter text-white uppercase italic">EntrevistIA</span>
+              <span className="text-lg font-bold tracking-tighter text-white uppercase">EntrevistIA</span>
             </div>
             <nav className="flex gap-6 items-center">
-              <button onClick={() => setView(AppView.DASHBOARD)} className={`text-[10px] font-black uppercase tracking-widest ${view === AppView.DASHBOARD ? 'text-blue-400' : 'text-slate-400 hover:text-white'}`}>Dashboard</button>
-              <button onClick={handleLogout} className="text-[10px] font-black text-slate-500 uppercase tracking-widest hover:text-red-400 transition-colors bg-white/5 px-4 py-2 rounded-lg border border-white/5">Salir</button>
+              <button onClick={() => setView(AppView.DASHBOARD)} className={`text-[10px] font-bold uppercase tracking-widest ${view === AppView.DASHBOARD ? 'text-blue-400' : 'text-slate-400 hover:text-white'}`}>Panel</button>
+              <button onClick={handleLogout} className="text-[10px] font-bold text-slate-500 uppercase tracking-widest hover:text-red-400 transition-colors bg-white/5 px-4 py-2 rounded-lg border border-white/5">Cerrar Sesión</button>
             </nav>
           </div>
         </header>

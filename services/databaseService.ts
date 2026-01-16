@@ -4,7 +4,7 @@ import { SessionRecord } from '../types';
 
 export const saveSession = async (session: Omit<SessionRecord, 'id'>): Promise<SessionRecord | null> => {
   if (!supabase) {
-    console.error("Supabase client not initialized.");
+    console.error("Cliente de Supabase no inicializado.");
     return null;
   }
 
@@ -23,7 +23,7 @@ export const saveSession = async (session: Omit<SessionRecord, 'id'>): Promise<S
     .single();
 
   if (error) {
-    console.error("Error saving session to Supabase:", error);
+    console.error("Error al guardar la sesión en Supabase:", error);
     return null;
   }
 
@@ -39,7 +39,7 @@ export const saveSession = async (session: Omit<SessionRecord, 'id'>): Promise<S
 
 export const getUserSessions = async (userId: string): Promise<SessionRecord[]> => {
   if (!supabase) {
-    console.error("Supabase client not initialized.");
+    console.error("Cliente de Supabase no inicializado.");
     return [];
   }
 
@@ -50,19 +50,22 @@ export const getUserSessions = async (userId: string): Promise<SessionRecord[]> 
     .order('timestamp', { ascending: false });
 
   if (error) {
-    console.error("Error fetching sessions:", error);
+    console.error("Error al obtener sesiones:", error);
     return [];
   }
 
-  return data.map(s => ({
+  return data.map((s: any) => ({
     id: s.id,
     userId: s.user_id,
     timestamp: new Date(s.timestamp).getTime(),
     config: s.config,
     overallScore: s.overall_score,
-    overallSummary: s.overall_summary,
+    overall_summary: s.overall_summary,
     filler_word_analysis: s.filler_word_analysis,
     mistakes: s.mistakes,
-    questions: s.questions
+    questions: s.questions,
+    // Adaptación de nombres de propiedades de BD a TS
+    overallSummary: s.overall_summary,
+    fillerWordAnalysis: s.filler_word_analysis
   }));
 };
