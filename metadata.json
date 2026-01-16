@@ -1,0 +1,7 @@
+{
+  "name": "EntrevistIA - Coach de Entrevistas AI",
+  "description": "Plataforma de coaching de entrevistas asistida por IA con feedback visual avanzado, análisis estructural STAR y métricas de asertividad.",
+  "requestFramePermissions": [
+    "microphone"
+  ]
+}
