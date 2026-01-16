@@ -105,7 +105,7 @@ const InterviewSession: React.FC<InterviewSessionProps> = ({ config, userId, onF
       mediaRecorder.start();
       setIsRecording(true);
     } catch (err) {
-      console.error("No se pudo iniciar la grabación", err);
+      console.error("Acceso al micrófono denegado.", err);
     }
   };
 
@@ -129,7 +129,7 @@ const InterviewSession: React.FC<InterviewSessionProps> = ({ config, userId, onF
         }
       };
     } catch (err) {
-      console.error("Error en la transcripción de Gemini", err);
+      console.error("Error en procesamiento de audio.", err);
     } finally {
       setTranscribing(false);
     }
@@ -146,9 +146,9 @@ const InterviewSession: React.FC<InterviewSessionProps> = ({ config, userId, onF
   if (loading || processing) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[500px] space-y-6">
-        <div className="w-16 h-16 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
-        <p className="text-white font-bold tracking-widest uppercase text-xs">
-          {processing ? 'Analizando tu Rendimiento Maestro...' : 'IA Generando Desafío Elite...'}
+        <div className="w-12 h-12 border-2 border-slate-700 border-t-blue-500 rounded-full animate-spin"></div>
+        <p className="text-slate-400 font-medium uppercase tracking-[0.3em] text-[10px]">
+          {processing ? 'Generando análisis de respuesta...' : 'Generando pregunta de entrevista...'}
         </p>
       </div>
     );
@@ -157,40 +157,36 @@ const InterviewSession: React.FC<InterviewSessionProps> = ({ config, userId, onF
   return (
     <div className="max-w-4xl mx-auto space-y-8 py-10 animate-fadeIn">
       <div className="flex justify-between items-center px-4">
-        <span className="px-4 py-1.5 bg-white/5 rounded-full border border-white/10 text-[10px] font-black text-slate-400 uppercase tracking-widest">
-          Pregunta {currentIdx + 1} de {config.questionCount}
+        <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">
+          Reactivo {currentIdx + 1} de {config.questionCount}
         </span>
-        <div className={`px-4 py-1.5 rounded-full border font-black text-xs ${timeLeft < 20 ? 'bg-red-500/10 border-red-500/30 text-red-400' : 'bg-white/5 border-white/10 text-amber-400'}`}>
-          {Math.floor(timeLeft / 60)}:{(timeLeft % 60).toString().padStart(2, '0')}
+        <div className={`px-4 py-1.5 rounded-lg border font-mono text-xs ${timeLeft < 20 ? 'bg-red-500/10 border-red-500/30 text-red-400' : 'bg-white/5 border-white/10 text-slate-400'}`}>
+          TIEMPO: {Math.floor(timeLeft / 60)}:{(timeLeft % 60).toString().padStart(2, '0')}
         </div>
       </div>
 
-      <div className="glass p-12 rounded-[2.5rem] border-l-8 border-blue-600 relative overflow-hidden">
-        <div className="absolute top-0 right-0 p-8 opacity-5">
-          <i className="ph ph-lightning text-6xl"></i>
-        </div>
-        <h2 className="text-3xl font-bold text-white leading-tight">{question}</h2>
+      <div className="glass p-12 rounded-3xl border-l-8 border-blue-600">
+        <h2 className="text-2xl font-bold text-white leading-relaxed">{question}</h2>
       </div>
 
       <div className="relative">
         <textarea 
           value={response}
           onChange={(e) => setResponse(e.target.value)}
-          className="w-full h-64 p-10 rounded-[2.5rem] glass border-2 border-white/5 focus:border-blue-500 outline-none text-xl text-slate-200 resize-none transition-all shadow-inner"
-          placeholder="Tu respuesta estratégica..."
+          className="w-full h-64 p-10 rounded-3xl glass border border-white/5 focus:border-blue-500 outline-none text-lg text-slate-300 resize-none transition-all"
+          placeholder="Escriba o grabe su respuesta profesional..."
         />
         
         <div className="absolute bottom-6 right-6 flex items-center gap-4">
           {transcribing && (
-            <div className="flex items-center gap-2 px-4 py-2 bg-blue-500/10 border border-blue-500/20 rounded-full animate-pulse">
-               <div className="w-2 h-2 bg-blue-500 rounded-full animate-ping"></div>
-               <span className="text-[10px] font-black text-blue-400 uppercase tracking-widest">IA Transcribiendo...</span>
+            <div className="flex items-center gap-2 px-4 py-2 bg-blue-500/5 border border-blue-500/20 rounded-full animate-pulse">
+               <span className="text-[9px] font-bold text-blue-400 uppercase tracking-widest">Procesando audio...</span>
             </div>
           )}
           <button 
             onClick={toggleRecording}
             disabled={transcribing}
-            className={`w-14 h-14 rounded-2xl flex items-center justify-center transition-all shadow-2xl ${isRecording ? 'bg-red-600 text-white animate-pulse' : 'bg-white text-slate-900 hover:bg-blue-600 hover:text-white disabled:opacity-50'}`}
+            className={`w-14 h-14 rounded-2xl flex items-center justify-center transition-all shadow-xl ${isRecording ? 'bg-red-600 text-white animate-pulse' : 'bg-white text-slate-900 hover:bg-slate-200 disabled:opacity-50'}`}
           >
             <i className={`ph-bold ${isRecording ? 'ph-stop' : 'ph-microphone'} text-xl`}></i>
           </button>
@@ -198,13 +194,13 @@ const InterviewSession: React.FC<InterviewSessionProps> = ({ config, userId, onF
       </div>
 
       <div className="flex gap-4 justify-end">
-        <button onClick={onCancel} className="px-8 py-4 rounded-xl text-slate-500 font-bold uppercase text-[10px] tracking-widest hover:text-white">Abandonar</button>
+        <button onClick={onCancel} className="px-6 py-4 rounded-xl text-slate-500 font-bold uppercase text-[10px] tracking-widest hover:text-white">Abortar Evaluación</button>
         <button 
           onClick={handleNext} 
           disabled={!response.trim() || transcribing}
-          className="bg-blue-600 hover:bg-blue-500 text-white font-black py-4 px-12 rounded-xl shadow-xl shadow-blue-600/20 uppercase text-[10px] tracking-[0.2em] transition-all disabled:opacity-50"
+          className="bg-blue-600 hover:bg-blue-500 text-white font-bold py-4 px-10 rounded-xl shadow-lg uppercase text-[10px] tracking-widest transition-all disabled:opacity-50"
         >
-          {currentIdx + 1 === config.questionCount ? 'Finalizar y Ver Reporte' : 'Siguiente Pregunta'}
+          {currentIdx + 1 === config.questionCount ? 'Finalizar y Generar Reporte' : 'Enviar y Siguiente'}
         </button>
       </div>
     </div>

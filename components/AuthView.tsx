@@ -4,10 +4,11 @@ import { supabase } from '../lib/supabase';
 
 interface AuthViewProps {
   onBack: () => void;
+  onGuest: () => void;
   initialMode?: 'login' | 'register';
 }
 
-const AuthView: React.FC<AuthViewProps> = ({ onBack, initialMode = 'login' }) => {
+const AuthView: React.FC<AuthViewProps> = ({ onBack, onGuest, initialMode = 'login' }) => {
   const [isLogin, setIsLogin] = useState(initialMode === 'login');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -16,9 +17,17 @@ const AuthView: React.FC<AuthViewProps> = ({ onBack, initialMode = 'login' }) =>
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
 
+  const isSupabaseConfigured = !!(supabase && supabase.auth);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    
+    if (!isSupabaseConfigured) {
+        setError('Supabase no está configurado. Por favor, usa el Modo Invitado para probar la app.');
+        return;
+    }
+
     setLoading(true);
 
     try {
@@ -60,60 +69,36 @@ const AuthView: React.FC<AuthViewProps> = ({ onBack, initialMode = 'login' }) =>
           className="absolute -top-16 left-0 flex items-center gap-2 text-slate-500 hover:text-white transition-colors text-[10px] font-black uppercase tracking-widest group"
         >
           <i className="ph-bold ph-arrow-left group-hover:-translate-x-1 transition-transform"></i>
-          Volver al Inicio
+          Volver
         </button>
-
-        <div className="absolute -top-20 -left-20 w-64 h-64 bg-blue-600/20 blur-[100px] -z-10 rounded-full"></div>
-        <div className="absolute -bottom-20 -right-20 w-64 h-64 bg-indigo-600/20 blur-[100px] -z-10 rounded-full"></div>
 
         <div className="glass p-10 rounded-[2.5rem] shadow-2xl border-white/10 relative overflow-hidden">
           <div className="text-center mb-10">
-            <div className="inline-flex w-16 h-16 bg-blue-600 rounded-2xl items-center justify-center text-white text-3xl font-bold shadow-xl shadow-blue-500/30 mb-6">
+            <div className="inline-flex w-16 h-16 bg-blue-600 rounded-2xl items-center justify-center text-white text-3xl font-bold mb-6">
               <i className="ph-bold ph-lightning"></i>
             </div>
-            <h1 className="text-3xl font-black text-white italic uppercase tracking-tighter">EntrevistIA</h1>
+            <h1 className="text-3xl font-black text-white italic uppercase tracking-tighter">Acceso Elite</h1>
             <p className="text-slate-400 text-sm mt-2 font-medium">
-              {isLogin ? 'Bienvenido de nuevo a la élite' : 'Crea tu perfil de alto rendimiento'}
+              {!isSupabaseConfigured ? 'Modo Demo Activado' : isLogin ? 'Bienvenido de nuevo' : 'Crea tu perfil'}
             </p>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-5">
             {!isLogin && (
               <div className="space-y-2">
-                <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest pl-2">Nombre Completo</label>
-                <input 
-                  type="text" 
-                  value={name}
-                  required
-                  onChange={(e) => setName(e.target.value)}
-                  className="w-full bg-white/5 border border-white/10 rounded-2xl px-5 py-4 text-white outline-none focus:border-blue-500 transition-all"
-                  placeholder="Ej. Juan Pérez"
-                />
+                <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest pl-2">Nombre</label>
+                <input type="text" value={name} onChange={(e) => setName(e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-2xl px-5 py-4 text-white outline-none focus:border-blue-500" placeholder="Juan Pérez" disabled={!isSupabaseConfigured}/>
               </div>
             )}
 
             <div className="space-y-2">
-              <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest pl-2">Correo Electrónico</label>
-              <input 
-                type="email" 
-                value={email}
-                required
-                onChange={(e) => setEmail(e.target.value)}
-                className="w-full bg-white/5 border border-white/10 rounded-2xl px-5 py-4 text-white outline-none focus:border-blue-500 transition-all"
-                placeholder="email@ejemplo.com"
-              />
+              <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest pl-2">Email</label>
+              <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-2xl px-5 py-4 text-white outline-none focus:border-blue-500" placeholder="email@ejemplo.com" disabled={!isSupabaseConfigured}/>
             </div>
 
             <div className="space-y-2">
               <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest pl-2">Contraseña</label>
-              <input 
-                type="password" 
-                value={password}
-                required
-                onChange={(e) => setPassword(e.target.value)}
-                className="w-full bg-white/5 border border-white/10 rounded-2xl px-5 py-4 text-white outline-none focus:border-blue-500 transition-all"
-                placeholder="••••••••"
-              />
+              <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-2xl px-5 py-4 text-white outline-none focus:border-blue-500" placeholder="••••••••" disabled={!isSupabaseConfigured}/>
             </div>
 
             {error && (
@@ -122,26 +107,24 @@ const AuthView: React.FC<AuthViewProps> = ({ onBack, initialMode = 'login' }) =>
               </div>
             )}
 
-            <button 
-              type="submit"
-              disabled={loading}
-              className="w-full bg-blue-600 hover:bg-blue-500 text-white font-black py-5 rounded-2xl shadow-xl shadow-blue-600/20 transition-all transform hover:scale-[1.02] active:scale-[0.98] uppercase text-xs tracking-[0.2em] mt-4 disabled:opacity-50"
-            >
-              {loading ? 'Procesando...' : isLogin ? 'Entrar al Dashboard' : 'Crear Mi Cuenta'}
-            </button>
+            {isSupabaseConfigured ? (
+              <button type="submit" disabled={loading} className="w-full bg-blue-600 hover:bg-blue-500 text-white font-black py-5 rounded-2xl shadow-xl transition-all uppercase text-xs tracking-widest">
+                {loading ? 'Procesando...' : isLogin ? 'Entrar' : 'Registrarse'}
+              </button>
+            ) : (
+              <button type="button" onClick={onGuest} className="w-full bg-white text-slate-900 font-black py-5 rounded-2xl shadow-xl transition-all uppercase text-xs tracking-widest hover:bg-slate-200">
+                Entrar como Invitado (Modo Demo)
+              </button>
+            )}
           </form>
 
-          <div className="mt-8 text-center">
-            <button 
-              onClick={() => {
-                setIsLogin(!isLogin);
-                setError('');
-              }}
-              className="text-xs font-bold text-slate-500 hover:text-blue-400 transition-colors"
-            >
-              {isLogin ? '¿No tienes cuenta? Regístrate gratis' : '¿Ya eres miembro? Inicia sesión'}
-            </button>
-          </div>
+          {isSupabaseConfigured && (
+            <div className="mt-8 text-center">
+                <button onClick={() => setIsLogin(!isLogin)} className="text-xs font-bold text-slate-500 hover:text-blue-400">
+                {isLogin ? '¿No tienes cuenta? Regístrate' : '¿Ya tienes cuenta? Entra'}
+                </button>
+            </div>
+          )}
         </div>
       </div>
     </div>

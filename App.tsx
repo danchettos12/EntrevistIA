@@ -21,7 +21,9 @@ const App: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    if (!supabase) {
+    // Si no hay Supabase, mostramos la landing y permitimos modo invitado más adelante
+    if (!supabase || !supabase.auth) {
+      console.warn("Supabase no detectado - Operando en modo local.");
       setIsLoading(false);
       return;
     }
@@ -40,7 +42,7 @@ const App: React.FC = () => {
       } else {
         setUser(null);
         setSessions([]);
-        setView(AppView.LANDING);
+        if (view !== AppView.LANDING) setView(AppView.LANDING);
       }
       setIsLoading(false);
     });
@@ -55,12 +57,23 @@ const App: React.FC = () => {
   };
 
   const handleLogout = async () => {
-    if (supabase) {
+    if (supabase && supabase.auth) {
       await supabase.auth.signOut();
     } else {
       setUser(null);
       setView(AppView.LANDING);
     }
+  };
+
+  const handleGuestMode = () => {
+    const guestUser: User = {
+        id: 'guest',
+        name: 'Invitado Elite',
+        email: 'guest@entrevistia.ai',
+        preferredRole: 'Senior Developer'
+    };
+    setUser(guestUser);
+    setView(AppView.DASHBOARD);
   };
 
   const handleFinishSession = async (record: Omit<SessionRecord, 'id'>) => {
@@ -70,6 +83,7 @@ const App: React.FC = () => {
       setActiveSession(saved);
       setView(AppView.FEEDBACK);
     } else {
+      // Fallback local si Supabase falla o no existe
       const fallbackRecord: SessionRecord = { ...record, id: Math.random().toString(36).substr(2, 9) };
       setActiveSession(fallbackRecord);
       setView(AppView.FEEDBACK);
@@ -94,20 +108,15 @@ const App: React.FC = () => {
     );
   }
 
-  // Define background class based on view
   const isMarketingView = view === AppView.LANDING || view === AppView.AUTH;
   const bgClass = isMarketingView ? 'mesh-bg' : 'dashboard-grid';
 
   const renderView = () => {
-    if (!user && view !== AppView.LANDING && view !== AppView.AUTH) {
-        return <LandingView onGetStarted={() => openAuth('register')} onLogin={() => openAuth('login')} />;
-    }
-
     switch (view) {
       case AppView.LANDING:
-        return <LandingView onGetStarted={() => openAuth('register')} onLogin={() => openAuth('login')} />;
+        return <LandingView onGetStarted={() => openAuth('register')} onLogin={() => openAuth('login')} onGuest={handleGuestMode} />;
       case AppView.AUTH:
-        return <AuthView initialMode={authMode} onBack={() => setView(AppView.LANDING)} />;
+        return <AuthView initialMode={authMode} onBack={() => setView(AppView.LANDING)} onGuest={handleGuestMode} />;
       case AppView.DASHBOARD:
         return <Dashboard user={user!} sessions={sessions} onStart={() => setView(AppView.SETUP)} onViewSession={handleViewSession} />;
       case AppView.SETUP:
@@ -117,7 +126,7 @@ const App: React.FC = () => {
       case AppView.FEEDBACK:
         return <FeedbackView session={activeSession!} onClose={() => setView(AppView.DASHBOARD)} />;
       default:
-        return <LandingView onGetStarted={() => openAuth('register')} onLogin={() => openAuth('login')} />;
+        return <LandingView onGetStarted={() => openAuth('register')} onLogin={() => openAuth('login')} onGuest={handleGuestMode} />;
     }
   };
 
@@ -133,13 +142,8 @@ const App: React.FC = () => {
               <span className="text-lg font-black tracking-tighter text-white uppercase italic">EntrevistIA</span>
             </div>
             <nav className="flex gap-6 items-center">
-              <button 
-                onClick={() => setView(AppView.DASHBOARD)}
-                className={`text-[10px] font-black uppercase tracking-widest transition-colors ${view === AppView.DASHBOARD ? 'text-blue-400' : 'text-slate-400 hover:text-white'}`}
-              >
-                Dashboard
-              </button>
-              <button onClick={handleLogout} className="text-[10px] font-black text-slate-500 uppercase tracking-widest hover:text-red-400 transition-colors bg-white/5 px-4 py-2 rounded-lg border border-white/5">Cerrar Sesión</button>
+              <button onClick={() => setView(AppView.DASHBOARD)} className={`text-[10px] font-black uppercase tracking-widest ${view === AppView.DASHBOARD ? 'text-blue-400' : 'text-slate-400 hover:text-white'}`}>Dashboard</button>
+              <button onClick={handleLogout} className="text-[10px] font-black text-slate-500 uppercase tracking-widest hover:text-red-400 transition-colors bg-white/5 px-4 py-2 rounded-lg border border-white/5">Salir</button>
             </nav>
           </div>
         </header>
