@@ -8,9 +8,10 @@ interface DashboardProps {
   sessions: SessionRecord[];
   onStart: () => void;
   onViewSession: (session: SessionRecord) => void;
+  onOpenDoc?: () => void;
 }
 
-const Dashboard: React.FC<DashboardProps> = ({ user, sessions, onStart, onViewSession }) => {
+const Dashboard: React.FC<DashboardProps> = ({ user, sessions, onStart, onViewSession, onOpenDoc }) => {
   const [activeTab, setActiveTab] = useState<'resumen' | 'historial' | 'guias'>('resumen');
 
   const chartData = [...sessions].reverse().map((s, idx) => ({
@@ -32,7 +33,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, sessions, onStart, onViewSe
   ];
 
   return (
-    <div className="space-y-8 animate-fadeIn max-w-7xl mx-auto pb-20">
+    <div className="space-y-8 animate-fadeIn max-w-7xl mx-auto pb-10">
       {/* Perfil del Usuario y Cabecera de Estado */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         <div className="lg:col-span-5 glass p-8 rounded-3xl border-l-4 border-blue-600 flex items-center gap-6">
@@ -164,12 +165,22 @@ const Dashboard: React.FC<DashboardProps> = ({ user, sessions, onStart, onViewSe
                <h4 className="text-lg font-bold text-white mb-3">{guia.title}</h4>
                <p className="text-xs text-slate-400 leading-relaxed mb-6">{guia.desc}</p>
                <button className="text-[9px] font-bold uppercase tracking-widest text-blue-400 hover:text-white transition-colors flex items-center gap-2">
-                 Ver Documentación <i className="ph ph-arrow-right"></i>
+                 Ver Detalles <i className="ph ph-arrow-right"></i>
                </button>
             </div>
           ))}
         </div>
       )}
+
+      {/* FOOTER SUTIL PARA ACCESO AL MANUAL PRD */}
+      <footer className="pt-20 text-center opacity-10 hover:opacity-100 transition-opacity">
+        <button 
+          onClick={onOpenDoc}
+          className="text-[8px] font-bold text-slate-500 uppercase tracking-[0.4em] hover:text-blue-500"
+        >
+          Acceso Administrador - Manual PRD de la Plataforma
+        </button>
+      </footer>
     </div>
   );
 };

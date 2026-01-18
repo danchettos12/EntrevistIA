@@ -21,7 +21,7 @@ const AuthView: React.FC<AuthViewProps> = ({ onBack, initialMode = 'login' }) =>
     setError('');
     
     if (!supabase || !supabase.auth) {
-        setError('Error: El servicio de autenticación no está disponible. Verifique la configuración del servidor.');
+        setError('SERVICIO NO CONFIGURADO: No se detectaron las credenciales de Supabase (SUPABASE_URL / ANON_KEY). Por favor, agrégalas en las variables de entorno de Vercel y vuelve a desplegar.');
         return;
     }
 
@@ -36,7 +36,7 @@ const AuthView: React.FC<AuthViewProps> = ({ onBack, initialMode = 'login' }) =>
         if (loginError) throw loginError;
       } else {
         if (!name || !email || !password) {
-          throw new Error('Todos los campos son obligatorios para el registro profesional.');
+          throw new Error('Todos los campos son obligatorios.');
         }
         
         const { error: signUpError } = await supabase.auth.signUp({
@@ -49,11 +49,11 @@ const AuthView: React.FC<AuthViewProps> = ({ onBack, initialMode = 'login' }) =>
           }
         });
         if (signUpError) throw signUpError;
-        setError('Cuenta registrada correctamente. Por favor, verifique su bandeja de entrada para activar su acceso profesional.');
+        setError('Registro iniciado. Por favor, confirma tu correo electrónico para activar tu acceso.');
       }
     } catch (err: any) {
-      console.error("Auth Error:", err);
-      setError(err.message || 'No se pudo completar la solicitud de autenticación.');
+      console.error("Error de Auth:", err);
+      setError(err.message || 'Error al intentar conectar con el servicio de identidad.');
     } finally {
       setLoading(false);
     }
@@ -67,51 +67,51 @@ const AuthView: React.FC<AuthViewProps> = ({ onBack, initialMode = 'login' }) =>
           className="absolute -top-16 left-0 flex items-center gap-2 text-slate-500 hover:text-white transition-colors text-[10px] font-bold uppercase tracking-widest group"
         >
           <i className="ph ph-arrow-left group-hover:-translate-x-1 transition-transform"></i>
-          Regresar al Inicio
+          Volver al Inicio
         </button>
 
         <div className="glass p-10 rounded-[2rem] shadow-2xl border-white/10 relative overflow-hidden">
           <div className="text-center mb-10">
             <div className="inline-flex w-16 h-16 bg-blue-600 rounded-2xl items-center justify-center text-white text-3xl font-bold mb-6 shadow-lg shadow-blue-900/40">
-              <i className="ph ph-user-focus"></i>
+              <i className="ph ph-lock-key"></i>
             </div>
             <h1 className="text-2xl font-bold text-white uppercase tracking-tight">
-              {isLogin ? 'Acceso Corporativo' : 'Registro de Consultor'}
+              {isLogin ? 'Acceso Seguro' : 'Crear Perfil'}
             </h1>
-            <p className="text-slate-400 text-xs mt-2 font-medium uppercase tracking-widest leading-relaxed">
-              {isLogin ? 'Inicie sesión en su plataforma de coaching' : 'Cree su perfil profesional para comenzar'}
+            <p className="text-slate-400 text-[10px] mt-2 font-bold uppercase tracking-[0.2em] leading-relaxed">
+              {isLogin ? 'Entra a tu plataforma de entrenamiento' : 'Únete a la red de profesionales senior'}
             </p>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-5">
             {!isLogin && (
               <div className="space-y-2">
-                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest pl-2">Nombre y Apellidos</label>
+                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest pl-2">Nombre Completo</label>
                 <input 
                   type="text" 
                   value={name} 
                   onChange={(e) => setName(e.target.value)} 
                   className="w-full bg-white/5 border border-white/10 rounded-xl px-5 py-4 text-white outline-none focus:border-blue-500 transition-all text-sm" 
-                  placeholder="Ej: Alejandro Magno"
+                  placeholder="Ej: Juan Pérez"
                   required
                 />
               </div>
             )}
 
             <div className="space-y-2">
-              <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest pl-2">Correo Electrónico Profesional</label>
+              <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest pl-2">Email Profesional</label>
               <input 
                 type="email" 
                 value={email} 
                 onChange={(e) => setEmail(e.target.value)} 
                 className="w-full bg-white/5 border border-white/10 rounded-xl px-5 py-4 text-white outline-none focus:border-blue-500 transition-all text-sm" 
-                placeholder="usuario@dominio.com"
+                placeholder="usuario@ejemplo.com"
                 required
               />
             </div>
 
             <div className="space-y-2">
-              <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest pl-2">Contraseña Segura</label>
+              <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest pl-2">Contraseña</label>
               <input 
                 type="password" 
                 value={password} 
@@ -123,7 +123,7 @@ const AuthView: React.FC<AuthViewProps> = ({ onBack, initialMode = 'login' }) =>
             </div>
 
             {error && (
-              <div className={`p-4 rounded-xl text-[10px] font-bold text-center border leading-relaxed ${error.includes('activar su acceso') ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' : 'bg-red-500/10 border-red-500/20 text-red-400'}`}>
+              <div className={`p-4 rounded-xl text-[10px] font-bold text-center border leading-relaxed ${error.includes('Registro iniciado') ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' : 'bg-red-500/10 border-red-500/20 text-red-400'}`}>
                 {error}
               </div>
             )}
@@ -133,7 +133,7 @@ const AuthView: React.FC<AuthViewProps> = ({ onBack, initialMode = 'login' }) =>
               disabled={loading} 
               className="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-5 rounded-xl shadow-xl transition-all uppercase text-[10px] tracking-[0.2em] disabled:opacity-50"
             >
-              {loading ? 'Validando Credenciales...' : isLogin ? 'Ingresar a EntrevistIA' : 'Finalizar Registro'}
+              {loading ? 'Conectando...' : isLogin ? 'Entrar Ahora' : 'Confirmar Registro'}
             </button>
           </form>
 
@@ -142,7 +142,7 @@ const AuthView: React.FC<AuthViewProps> = ({ onBack, initialMode = 'login' }) =>
                 onClick={() => setIsLogin(!isLogin)} 
                 className="text-[10px] font-bold text-slate-500 hover:text-blue-400 uppercase tracking-widest transition-colors"
               >
-                {isLogin ? '¿No tiene una cuenta? Regístrese aquí' : '¿Ya es miembro? Inicie sesión'}
+                {isLogin ? '¿No tienes cuenta? Regístrate gratis' : '¿Ya eres miembro? Inicia sesión'}
               </button>
           </div>
         </div>

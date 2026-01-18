@@ -10,6 +10,7 @@ import InterviewSession from './components/InterviewSession';
 import FeedbackView from './components/FeedbackView';
 import AuthView from './components/AuthView';
 import LandingView from './components/LandingView';
+import DocumentationView from './components/DocumentationView';
 
 const App: React.FC = () => {
   const [user, setUser] = useState<User | null>(null);
@@ -69,7 +70,6 @@ const App: React.FC = () => {
       setActiveSession(saved);
       setView(AppView.FEEDBACK);
     } else {
-      // Fallback visual en caso de error de red, aunque se recomienda persistencia real
       const fallbackRecord: SessionRecord = { ...record, id: Math.random().toString(36).substr(2, 9) };
       setActiveSession(fallbackRecord);
       setView(AppView.FEEDBACK);
@@ -89,7 +89,10 @@ const App: React.FC = () => {
   if (isLoading) {
     return (
       <div className="min-h-screen bg-[#020617] flex items-center justify-center">
-        <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+          <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Iniciando Sistemas...</span>
+        </div>
       </div>
     );
   }
@@ -97,29 +100,17 @@ const App: React.FC = () => {
   const isMarketingView = view === AppView.LANDING || view === AppView.AUTH;
   const bgClass = isMarketingView ? 'mesh-bg' : 'dashboard-grid';
 
-  const renderView = () => {
-    switch (view) {
-      case AppView.LANDING:
-        return <LandingView onGetStarted={() => openAuth('register')} onLogin={() => openAuth('login')} />;
-      case AppView.AUTH:
-        return <AuthView initialMode={authMode} onBack={() => setView(AppView.LANDING)} />;
-      case AppView.DASHBOARD:
-        return <Dashboard user={user!} sessions={sessions} onStart={() => setView(AppView.SETUP)} onViewSession={handleViewSession} />;
-      case AppView.SETUP:
-        return <SetupForm initialRole={user?.preferredRole} onStart={(c) => { setCurrentConfig(c); setView(AppView.INTERVIEW); }} onBack={() => setView(AppView.DASHBOARD)} />;
-      case AppView.INTERVIEW:
-        return <InterviewSession config={currentConfig} userId={user!.id} onFinish={handleFinishSession} onCancel={() => setView(AppView.DASHBOARD)} />;
-      case AppView.FEEDBACK:
-        return <FeedbackView session={activeSession!} onClose={() => setView(AppView.DASHBOARD)} />;
-      default:
-        return <LandingView onGetStarted={() => openAuth('register')} onLogin={() => openAuth('login')} />;
-    }
-  };
-
   return (
     <div className={`min-h-screen flex flex-col transition-colors duration-1000 ${bgClass}`}>
-      {user && (
-        <header className="fixed top-6 left-1/2 -translate-x-1/2 z-[100] w-[95%] max-w-7xl">
+      {/* Banner de error oculto para evitar ruido visual al usuario final */}
+      {(!supabase || !supabase.auth) && view !== AppView.LANDING && view !== AppView.AUTH && (
+        <div className="bg-amber-600/20 text-amber-400 text-[8px] font-bold uppercase tracking-widest py-1 text-center fixed top-0 w-full z-[200] border-b border-amber-500/20">
+          Modo Local Activo (Persistence Offline)
+        </div>
+      )}
+
+      {user && view !== AppView.DOCUMENTATION && (
+        <header className="fixed top-6 left-1/2 -translate-x-1/2 z-[100] w-[95%] max-w-7xl print:hidden">
           <div className="glass px-6 py-3 rounded-xl flex items-center justify-between shadow-2xl border-white/5">
             <div className="flex items-center gap-3 cursor-pointer" onClick={() => setView(AppView.DASHBOARD)}>
               <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center text-white font-bold text-lg">
@@ -134,8 +125,14 @@ const App: React.FC = () => {
           </div>
         </header>
       )}
-      <main className={`flex-1 ${user ? 'pt-32' : 'pt-0'} pb-20 px-4 max-w-7xl mx-auto w-full`}>
-        {renderView()}
+      <main className={`flex-1 ${user && view !== AppView.DOCUMENTATION ? 'pt-32' : 'pt-0'} pb-20 px-4 max-w-7xl mx-auto w-full`}>
+        {view === AppView.LANDING && <LandingView onGetStarted={() => openAuth('register')} onLogin={() => openAuth('login')} />}
+        {view === AppView.AUTH && <AuthView initialMode={authMode} onBack={() => setView(AppView.LANDING)} />}
+        {view === AppView.DASHBOARD && user && <Dashboard user={user} sessions={sessions} onStart={() => setView(AppView.SETUP)} onViewSession={handleViewSession} onOpenDoc={() => setView(AppView.DOCUMENTATION)} />}
+        {view === AppView.SETUP && <SetupForm initialRole={user?.preferredRole} onStart={(c) => { setCurrentConfig(c); setView(AppView.INTERVIEW); }} onBack={() => setView(AppView.DASHBOARD)} />}
+        {view === AppView.INTERVIEW && user && <InterviewSession config={currentConfig} userId={user.id} onFinish={handleFinishSession} onCancel={() => setView(AppView.DASHBOARD)} />}
+        {view === AppView.FEEDBACK && activeSession && <FeedbackView session={activeSession} onClose={() => setView(AppView.DASHBOARD)} />}
+        {view === AppView.DOCUMENTATION && <DocumentationView onBack={() => setView(AppView.DASHBOARD)} />}
       </main>
     </div>
   );
