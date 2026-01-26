@@ -1,18 +1,17 @@
 
 import { createClient } from '@supabase/supabase-js';
 
-const supabaseUrl = process.env.SUPABASE_URL;
-const supabaseAnonKey = process.env.SUPABASE_ANON_KEY;
+const supabaseUrl = process.env.SUPABASE_URL || "";
+const supabaseAnonKey = process.env.SUPABASE_ANON_KEY || "";
 
 // Motor de simulación para persistencia local cuando no hay base de datos configurada
 const createMockClient = () => {
-  console.warn("ENTREVISTIA: Utilizando persistencia local (Mock Mode).");
+  console.warn("ENTREVISTIA: Modo Local Activo (Sin Conexión a Base de Datos Externa).");
   
   return {
     auth: {
       onAuthStateChange: (callback: any) => {
         const savedUser = localStorage.getItem('entrevistia_user');
-        // Importante: Ejecutar el callback siempre para que App.tsx sepa que ya terminó de cargar
         if (savedUser) {
           setTimeout(() => callback('SIGNED_IN', { user: JSON.parse(savedUser) }), 50);
         } else {
@@ -28,28 +27,23 @@ const createMockClient = () => {
           window.location.reload(); 
           return { data: { user }, error: null };
         }
-        return { data: null, error: { message: 'Credenciales inválidas en modo local.' } };
+        return { data: null, error: { message: 'Usuario no encontrado en modo local. Prueba el acceso como invitado.' } };
       },
       signInAnonymously: async () => {
         const guestUser = {
           id: `guest-${Math.random().toString(36).substr(2, 5)}`,
           email: 'guest@entrevistia.local',
           user_metadata: { 
-            full_name: 'Invitado Especial', 
-            is_guest: true,
-            preferred_role: 'Candidato Senior'
+            full_name: 'Invitado EntrevistIA', 
+            is_guest: true
           }
         };
         localStorage.setItem('entrevistia_user', JSON.stringify(guestUser));
-        // Forzamos la recarga para que el motor detecte el nuevo usuario al arrancar
         window.location.reload();
         return { data: { user: guestUser }, error: null };
       },
       signUp: async ({ email, password, options }: any) => {
         const users = JSON.parse(localStorage.getItem('entrevistia_mock_db_users') || '[]');
-        if (users.find((u: any) => u.email === email)) {
-          return { data: null, error: { message: 'Este correo ya está registrado localmente.' } };
-        }
         const newUser = { 
           id: Math.random().toString(36).substr(2, 9), 
           email, 
@@ -94,9 +88,9 @@ const createMockClient = () => {
   };
 };
 
-// Validación más estricta de variables de entorno
-const isConfigValid = supabaseUrl && supabaseAnonKey && 
-                     supabaseUrl !== "" && supabaseAnonKey !== "" && 
-                     !supabaseUrl.includes('your-project-url');
+const isConfigured = supabaseUrl && 
+                    supabaseAnonKey && 
+                    !supabaseUrl.includes('your-project-url') &&
+                    supabaseUrl.startsWith('https://');
 
-export const supabase = isConfigValid ? createClient(supabaseUrl, supabaseAnonKey) : createMockClient();
+export const supabase = isConfigured ? createClient(supabaseUrl, supabaseAnonKey) : createMockClient();
