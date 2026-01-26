@@ -16,15 +16,28 @@ const AuthView: React.FC<AuthViewProps> = ({ onBack, initialMode = 'login' }) =>
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
 
+  const isMock = supabase?.isMock;
+
+  const handleGuestAccess = async () => {
+    setLoading(true);
+    setError('');
+    try {
+      if (supabase?.auth?.signInAnonymously) {
+        await supabase.auth.signInAnonymously();
+      } else {
+        // Fallback si por alguna razón el provider real no tiene anónimo habilitado
+        throw new Error('El acceso de invitado no está disponible en este servidor.');
+      }
+    } catch (err: any) {
+      setError(err.message || 'Error al intentar acceder como invitado.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-    
-    if (!supabase || !supabase.auth) {
-        setError('SERVICIO NO CONFIGURADO: No se detectaron las credenciales de Supabase (SUPABASE_URL / ANON_KEY). Por favor, agrégalas en las variables de entorno de Vercel y vuelve a desplegar.');
-        return;
-    }
-
     setLoading(true);
 
     try {
@@ -49,11 +62,14 @@ const AuthView: React.FC<AuthViewProps> = ({ onBack, initialMode = 'login' }) =>
           }
         });
         if (signUpError) throw signUpError;
-        setError('Registro iniciado. Por favor, confirma tu correo electrónico para activar tu acceso.');
+        
+        if (!isMock) {
+          setError('Registro iniciado. Por favor, confirma tu correo electrónico para activar tu acceso.');
+        }
       }
     } catch (err: any) {
       console.error("Error de Auth:", err);
-      setError(err.message || 'Error al intentar conectar con el servicio de identidad.');
+      setError(err.message || 'Error de conexión.');
     } finally {
       setLoading(false);
     }
@@ -71,7 +87,13 @@ const AuthView: React.FC<AuthViewProps> = ({ onBack, initialMode = 'login' }) =>
         </button>
 
         <div className="glass p-10 rounded-[2rem] shadow-2xl border-white/10 relative overflow-hidden">
-          <div className="text-center mb-10">
+          {isMock && (
+            <div className="absolute top-0 left-0 w-full bg-blue-600/10 py-1 text-[8px] font-bold text-blue-400 text-center uppercase tracking-[0.2em] border-b border-blue-500/10">
+              Modo de Entrenamiento Local Activo
+            </div>
+          )}
+          
+          <div className="text-center mb-10 pt-4">
             <div className="inline-flex w-16 h-16 bg-blue-600 rounded-2xl items-center justify-center text-white text-3xl font-bold mb-6 shadow-lg shadow-blue-900/40">
               <i className="ph ph-lock-key"></i>
             </div>
@@ -128,13 +150,25 @@ const AuthView: React.FC<AuthViewProps> = ({ onBack, initialMode = 'login' }) =>
               </div>
             )}
 
-            <button 
-              type="submit" 
-              disabled={loading} 
-              className="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-5 rounded-xl shadow-xl transition-all uppercase text-[10px] tracking-[0.2em] disabled:opacity-50"
-            >
-              {loading ? 'Conectando...' : isLogin ? 'Entrar Ahora' : 'Confirmar Registro'}
-            </button>
+            <div className="pt-2 space-y-3">
+              <button 
+                type="submit" 
+                disabled={loading} 
+                className="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-5 rounded-xl shadow-xl transition-all uppercase text-[10px] tracking-[0.2em] disabled:opacity-50"
+              >
+                {loading ? 'Conectando...' : isLogin ? 'Entrar Ahora' : 'Confirmar Registro'}
+              </button>
+              
+              <button 
+                type="button"
+                onClick={handleGuestAccess}
+                disabled={loading}
+                className="w-full border border-white/10 hover:bg-white/5 text-slate-300 font-bold py-4 rounded-xl transition-all uppercase text-[10px] tracking-[0.2em] flex items-center justify-center gap-2"
+              >
+                <i className="ph ph-user-circle-plus text-lg"></i>
+                Entrar como Invitado
+              </button>
+            </div>
           </form>
 
           <div className="mt-8 text-center">
