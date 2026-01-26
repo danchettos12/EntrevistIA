@@ -31,8 +31,8 @@ const App: React.FC = () => {
       if (session?.user) {
         const loggedUser: User = {
           id: session.user.id,
-          name: session.user.user_metadata.full_name || session.user.email?.split('@')[0] || 'Usuario',
-          email: session.user.email!,
+          name: session.user.user_metadata.full_name || session.user.email?.split('@')[0] || 'Invitado',
+          email: session.user.email || 'guest@entrevistia.local',
           preferredRole: session.user.user_metadata.preferred_role || ''
         };
         setUser(loggedUser);
@@ -41,7 +41,10 @@ const App: React.FC = () => {
       } else {
         setUser(null);
         setSessions([]);
-        if (view !== AppView.LANDING && view !== AppView.AUTH) setView(AppView.LANDING);
+        // Si no hay sesión, regresamos a landing a menos que estemos en auth
+        if (view !== AppView.LANDING && view !== AppView.AUTH) {
+          setView(AppView.LANDING);
+        }
       }
       setIsLoading(false);
     });
@@ -102,10 +105,10 @@ const App: React.FC = () => {
 
   return (
     <div className={`min-h-screen flex flex-col transition-colors duration-1000 ${bgClass}`}>
-      {/* Banner de error oculto para evitar ruido visual al usuario final */}
-      {(!supabase || !supabase.auth) && view !== AppView.LANDING && view !== AppView.AUTH && (
-        <div className="bg-amber-600/20 text-amber-400 text-[8px] font-bold uppercase tracking-widest py-1 text-center fixed top-0 w-full z-[200] border-b border-amber-500/20">
-          Modo Local Activo (Persistence Offline)
+      {/* Banner de modo local */}
+      {supabase?.isMock && view !== AppView.LANDING && view !== AppView.AUTH && (
+        <div className="bg-blue-600/20 text-blue-400 text-[8px] font-bold uppercase tracking-widest py-1 text-center fixed top-0 w-full z-[200] border-b border-blue-500/20">
+          Modo Local Activo (Simulación de Entrenamiento)
         </div>
       )}
 

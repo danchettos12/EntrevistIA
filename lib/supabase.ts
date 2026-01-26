@@ -12,8 +12,11 @@ const createMockClient = () => {
     auth: {
       onAuthStateChange: (callback: any) => {
         const savedUser = localStorage.getItem('entrevistia_user');
+        // Importante: Ejecutar el callback siempre para que App.tsx sepa que ya terminó de cargar
         if (savedUser) {
-          setTimeout(() => callback('SIGNED_IN', { user: JSON.parse(savedUser) }), 100);
+          setTimeout(() => callback('SIGNED_IN', { user: JSON.parse(savedUser) }), 50);
+        } else {
+          setTimeout(() => callback('SIGNED_OUT', null), 50);
         }
         return { data: { subscription: { unsubscribe: () => {} } } };
       },
@@ -31,9 +34,14 @@ const createMockClient = () => {
         const guestUser = {
           id: `guest-${Math.random().toString(36).substr(2, 5)}`,
           email: 'guest@entrevistia.local',
-          user_metadata: { full_name: 'Invitado', is_guest: true }
+          user_metadata: { 
+            full_name: 'Invitado Especial', 
+            is_guest: true,
+            preferred_role: 'Candidato Senior'
+          }
         };
         localStorage.setItem('entrevistia_user', JSON.stringify(guestUser));
+        // Forzamos la recarga para que el motor detecte el nuevo usuario al arrancar
         window.location.reload();
         return { data: { user: guestUser }, error: null };
       },
@@ -45,7 +53,7 @@ const createMockClient = () => {
         const newUser = { 
           id: Math.random().toString(36).substr(2, 9), 
           email, 
-          password, // Solo para demo local
+          password, 
           user_metadata: options?.data || {} 
         };
         users.push(newUser);
@@ -65,7 +73,7 @@ const createMockClient = () => {
         eq: (col: string, val: any) => ({
           order: () => {
             const allData = JSON.parse(localStorage.getItem(`entrevistia_mock_db_${table}`) || '[]');
-            const data = allData.filter((row: any) => row[col] === val);
+            const data = allData.filter((row: any) => row[col] === val || (col === 'user_id' && row.userId === val));
             return { data, error: null };
           }
         })
@@ -86,16 +94,9 @@ const createMockClient = () => {
   };
 };
 
-let supabaseClient: any = null;
+// Validación más estricta de variables de entorno
+const isConfigValid = supabaseUrl && supabaseAnonKey && 
+                     supabaseUrl !== "" && supabaseAnonKey !== "" && 
+                     !supabaseUrl.includes('your-project-url');
 
-if (supabaseUrl && supabaseAnonKey && supabaseUrl !== "" && supabaseAnonKey !== "") {
-  try {
-    supabaseClient = createClient(supabaseUrl, supabaseAnonKey);
-  } catch (err) {
-    supabaseClient = createMockClient();
-  }
-} else {
-  supabaseClient = createMockClient();
-}
-
-export const supabase = supabaseClient;
+export const supabase = isConfigValid ? createClient(supabaseUrl, supabaseAnonKey) : createMockClient();
