@@ -1,3 +1,4 @@
+
 import { createClient } from '@supabase/supabase-js';
 
 const supabaseUrl = process.env.SUPABASE_URL;
@@ -14,6 +15,7 @@ const isValidUrl = (url: string | undefined): boolean => {
 };
 
 const createInternalClient = () => {
+  // Se ha eliminado el console.warn como se solicitó
   return {
     auth: {
       onAuthStateChange: (callback: any) => {
