@@ -6,10 +6,14 @@ export const saveSession = async (session: Omit<SessionRecord, 'id'>): Promise<S
   if (!supabase) return null;
 
   try {
+    // Aseguramos que el timestamp se pase como string ISO para la base de datos
+    const isoTimestamp = session.timestamp ? new Date(session.timestamp).toISOString() : new Date().toISOString();
+
     const { data, error } = await supabase
       .from('sessions')
       .insert([{
         user_id: session.userId,
+        timestamp: isoTimestamp,
         config: session.config,
         overall_score: session.overallScore,
         overall_summary: session.overallSummary,
@@ -22,7 +26,10 @@ export const saveSession = async (session: Omit<SessionRecord, 'id'>): Promise<S
       .select()
       .single();
 
-    if (error) throw error;
+    if (error) {
+      console.error("Supabase insert error:", error);
+      throw error;
+    }
 
     return {
       id: data.id,
@@ -30,6 +37,7 @@ export const saveSession = async (session: Omit<SessionRecord, 'id'>): Promise<S
       timestamp: new Date(data.timestamp).getTime(),
       config: data.config,
       overallScore: data.overall_score,
+      // Fix: Removed 'overall_summary' which does not exist in SessionRecord type (use overallSummary instead)
       overallSummary: data.overall_summary,
       fillerWordAnalysis: data.filler_word_analysis,
       mistakes: data.mistakes,
@@ -38,7 +46,7 @@ export const saveSession = async (session: Omit<SessionRecord, 'id'>): Promise<S
       improvementPlan: data.improvement_plan
     };
   } catch (err) {
-    console.error("Error al guardar sesión:", err);
+    console.error("Error al guardar sesión detallado:", err);
     return null;
   }
 };
@@ -47,7 +55,9 @@ export const getUserSessions = async (userId: string): Promise<SessionRecord[]> 
   if (!supabase) return [];
 
   try {
-    const { data, error } = await supabase
+    // Fix: Cast supabase to any to resolve "Type instantiation is excessively deep" error
+    // which occurs due to the union type between the real Supabase client and the recursive mock client.
+    const { data, error } = await (supabase as any)
       .from('sessions')
       .select('*')
       .eq('user_id', userId)

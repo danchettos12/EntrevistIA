@@ -21,6 +21,11 @@ const createInternalClient = () => {
     listeners.forEach(cb => cb(event, session));
   };
 
+  // Generar un ID estable basado en el email para que las sesiones no se pierdan al refrescar
+  const getDeterministicId = (email: string) => {
+    return 'user_local_' + btoa(email).replace(/[^a-zA-Z0-0]/g, '').slice(0, 15);
+  };
+
   return {
     auth: {
       onAuthStateChange: (callback: any) => {
@@ -39,7 +44,7 @@ const createInternalClient = () => {
       },
       signInWithPassword: async ({ email }: { email: string }) => {
         const user = { 
-          id: 'user_local_' + Math.random().toString(36).substr(2, 9), 
+          id: getDeterministicId(email), 
           email, 
           user_metadata: { full_name: email.split('@')[0] } 
         };
@@ -49,7 +54,7 @@ const createInternalClient = () => {
       },
       signUp: async ({ email, options }: { email: string, options?: any }) => {
         const user = { 
-          id: 'user_local_' + Math.random().toString(36).substr(2, 9), 
+          id: getDeterministicId(email), 
           email, 
           user_metadata: { full_name: options?.data?.full_name || email.split('@')[0] } 
         };
@@ -63,46 +68,52 @@ const createInternalClient = () => {
         return { error: null };
       }
     },
-    from: (table: string) => ({
-      select: (_columns?: string) => ({
-        eq: (col: string, val: any) => ({
-          order: (orderCol: string, { ascending }: any = {}) => {
-            let data = JSON.parse(localStorage.getItem(`entrevistia_db_${table}`) || '[]');
-            if (col && val) data = data.filter((item: any) => item[col] === val);
-            data.sort((a: any, b: any) => {
-               const valA = new Date(a[orderCol] || 0).getTime();
-               const valB = new Date(b[orderCol] || 0).getTime();
-               return ascending ? valA - valB : valB - valA;
-            });
-            return Promise.resolve({ data, error: null });
-          }
-        }),
-        order: (orderCol: string, { ascending }: any = {}) => {
-          const data = JSON.parse(localStorage.getItem(`entrevistia_db_${table}`) || '[]');
-          data.sort((a: any, b: any) => {
-            const valA = new Date(a[orderCol] || 0).getTime();
-            const valB = new Date(b[orderCol] || 0).getTime();
-            return ascending ? valA - valB : valB - valA;
-          });
-          return Promise.resolve({ data, error: null });
-        }
-      }),
-      insert: (rows: any[]) => ({
-        select: () => ({
-          single: () => {
-            const data = JSON.parse(localStorage.getItem(`entrevistia_db_${table}`) || '[]');
-            const newRow = { 
-              ...rows[0], 
-              id: 'rec_' + Math.random().toString(36).substr(2, 9), 
-              timestamp: new Date().toISOString() 
-            };
-            data.unshift(newRow);
-            localStorage.setItem(`entrevistia_db_${table}`, JSON.stringify(data));
-            return Promise.resolve({ data: newRow, error: null });
-          }
+    from: (table: string) => {
+      const getData = () => JSON.parse(localStorage.getItem(`entrevistia_db_${table}`) || '[]');
+      const saveData = (data: any[]) => localStorage.setItem(`entrevistia_db_${table}`, JSON.stringify(data));
+
+      return {
+        select: (columns: string = '*') => {
+          let currentData = getData();
+          
+          // Fix: Explicitly type chain as any to break recursive type inference causing deep instantiation issues
+          const chain: any = {
+            eq: (col: string, val: any) => {
+              currentData = currentData.filter((item: any) => item[col] === val);
+              return chain;
+            },
+            order: (orderCol: string, { ascending }: any = {}) => {
+              currentData.sort((a: any, b: any) => {
+                const valA = new Date(a[orderCol] || 0).getTime();
+                const valB = new Date(b[orderCol] || 0).getTime();
+                return ascending ? valA - valB : valB - valA;
+              });
+              return Promise.resolve({ data: currentData, error: null });
+            },
+            // Permitir terminar la cadena sin order
+            then: (onfulfilled?: (value: any) => any) => {
+              return Promise.resolve({ data: currentData, error: null }).then(onfulfilled);
+            }
+          };
+          return chain;
+        },
+        insert: (rows: any[]) => ({
+          select: () => ({
+            single: () => {
+              const data = getData();
+              const newRow = { 
+                ...rows[0], 
+                id: rows[0].id || 'rec_' + Math.random().toString(36).substr(2, 9), 
+                timestamp: rows[0].timestamp || new Date().toISOString() 
+              };
+              data.unshift(newRow);
+              saveData(data);
+              return Promise.resolve({ data: newRow, error: null });
+            }
+          })
         })
-      })
-    }),
+      };
+    },
     isInternal: true
   };
 };
