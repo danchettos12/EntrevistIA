@@ -115,3 +115,7 @@ if (isValidUrl(supabaseUrl) && supabaseAnonKey && supabaseAnonKey !== "undefined
 }
 
 export const supabase = client;
+export const forceLocalMode = () => {
+  localStorage.setItem('entrevistia_force_local', 'true');
+  window.location.reload();
+};

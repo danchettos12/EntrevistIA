@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { supabase } from '../lib/supabase.ts';
+import { supabase, forceLocalMode } from '../lib/supabase.ts';
 
 interface AuthViewProps {
   onBack: () => void;
@@ -11,6 +11,7 @@ const AuthView: React.FC<AuthViewProps> = ({ onBack, initialMode = 'login' }) =>
   const [isLogin, setIsLogin] = useState(initialMode === 'login');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [isNetworkError, setIsNetworkError] = useState(false);
   
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -20,12 +21,12 @@ const AuthView: React.FC<AuthViewProps> = ({ onBack, initialMode = 'login' }) =>
     e.preventDefault();
     setError('');
     setLoading(true);
+    setIsNetworkError(false);
 
     try {
       if (isLogin) {
         const { error: loginError } = await supabase.auth.signInWithPassword({ email, password });
         if (loginError) throw loginError;
-        // Si el cliente es interno, forzamos recarga para sincronizar estado global
         if (supabase.isInternal) window.location.reload();
       } else {
         const { error: signUpError } = await supabase.auth.signUp({
@@ -41,10 +42,13 @@ const AuthView: React.FC<AuthViewProps> = ({ onBack, initialMode = 'login' }) =>
         }
       }
     } catch (err: any) {
-      // Si hay un error de red y no estamos en cliente interno, algo salió mal con la URL de Supabase
-      // pero el cliente ya debería haber caído a interno si la URL era inválida.
-      // Aquí manejamos errores de credenciales o de servidor.
-      setError(err.message || 'Error al procesar la solicitud. Intente de nuevo.');
+      console.error("Auth error:", err);
+      if (err.message?.includes('fetch') || err.name === 'TypeError') {
+        setError('Error de Red: No se puede conectar con el servidor de autenticación. Verifique su conexión o use el Modo Local.');
+        setIsNetworkError(true);
+      } else {
+        setError(err.message || 'Error al procesar la solicitud. Intente de nuevo.');
+      }
     } finally {
       setLoading(false);
     }
@@ -98,6 +102,15 @@ const AuthView: React.FC<AuthViewProps> = ({ onBack, initialMode = 'login' }) =>
                 <p className="text-[11px] text-red-400 text-center font-semibold leading-relaxed">
                   {error}
                 </p>
+                {isNetworkError && (
+                  <button 
+                    type="button"
+                    onClick={forceLocalMode}
+                    className="w-full mt-3 py-2 bg-slate-800 hover:bg-slate-700 text-white text-[9px] font-bold uppercase tracking-widest rounded-lg transition-all"
+                  >
+                    Activar Modo Local (Offline)
+                  </button>
+                )}
               </div>
             )}
 
@@ -112,7 +125,7 @@ const AuthView: React.FC<AuthViewProps> = ({ onBack, initialMode = 'login' }) =>
 
           <div className="mt-8 text-center">
             <button 
-              onClick={() => { setIsLogin(!isLogin); setError(''); }} 
+              onClick={() => { setIsLogin(!isLogin); setError(''); setIsNetworkError(false); }} 
               className="text-[9px] font-bold text-slate-500 hover:text-blue-400 uppercase tracking-widest transition-colors"
             >
               {isLogin ? '¿No tiene cuenta? Regístrese' : '¿Ya tiene cuenta? Inicie sesión'}

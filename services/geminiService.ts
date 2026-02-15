@@ -13,8 +13,8 @@ const FEEDBACK_SCHEMA = {
         type: Type.OBJECT,
         properties: {
           text: { type: Type.STRING },
-          type: { type: Type.STRING, description: 'weak (débil), strong (fuerte), o neutral' },
-          reason: { type: Type.STRING, description: 'Razón del análisis' }
+          type: { type: Type.STRING, description: 'weak, strong, neutral' },
+          reason: { type: Type.STRING }
         },
         required: ['text', 'type']
       }
@@ -54,7 +54,7 @@ export const transcribeAudio = async (base64Audio: string, mimeType: string): Pr
               }
             },
             {
-              text: "Transcribe exactamente lo que se dice en este audio de entrevista profesional en español. Solo devuelve el texto transcrito, nada más."
+              text: "Transcribe exactamente lo que se dice en este audio de entrevista profesional en español. Solo devuelve el texto transcrito."
             }
           ]
         }
@@ -62,27 +62,26 @@ export const transcribeAudio = async (base64Audio: string, mimeType: string): Pr
     });
     return response.text?.trim() || "";
   } catch (error) {
-    console.error("Error en transcripción:", error);
+    console.error("Transcription error:", error);
     return "";
   }
 };
 
 export const generateInterviewQuestion = async (config: SessionConfig, previousQuestions: string[] = []): Promise<string> => {
   const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || "" });
-  const prompt = `Actúa como un entrevistador de Recursos Humanos de alto nivel para el puesto de: ${config.role}. 
-  Rigor de la evaluación: ${config.pressure}/100. Enfoque técnico/conductual: ${config.focus}/100.
-  Preguntas ya realizadas para evitar repetición: ${previousQuestions.join(', ') || 'ninguna'}.
-  Genera una pregunta desafiante en ESPAÑOL que requiera una respuesta estructurada bajo estándares corporativos. Solo devuelve la pregunta.`;
+  const prompt = `Actúa como un reclutador senior para el cargo: ${config.role}. 
+  Rigor: ${config.pressure}/100. Enfoque Conductual: ${config.focus}/100.
+  Preguntas anteriores: ${previousQuestions.join(', ') || 'ninguna'}.
+  Genera UNA pregunta desafiante en ESPAÑOL. Solo la pregunta.`;
 
   try {
     const response = await ai.models.generateContent({
       model: 'gemini-3-flash-preview',
       contents: prompt
     });
-    return response.text || "Hubo un error al generar la pregunta de evaluación.";
+    return response.text || "¿Podría describir un logro del que se sienta especialmente orgulloso?";
   } catch (error) {
-    console.error("Error generando pregunta:", error);
-    return "¿Podría describir un desafío profesional reciente y cómo lo superó?";
+    return "¿Cómo manejas situaciones de alta presión en el trabajo?";
   }
 };
 
@@ -92,16 +91,11 @@ export const analyzeQuestionResponse = async (
   config: SessionConfig
 ): Promise<QuestionFeedback> => {
   const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || "" });
-  const prompt = `Analiza detalladamente esta respuesta de entrevista bajo estándares profesionales en ESPAÑOL:
+  const prompt = `Analiza esta respuesta de entrevista en ESPAÑOL:
   Pregunta: "${question}"
   Respuesta del Candidato: "${userResponse}"
   Cargo Objetivo: ${config.role}
-  
-  Instrucciones:
-  1. Identifica los componentes STAR (Situación, Tarea, Acción, Resultado).
-  2. Evalúa el tono y la asertividad.
-  3. Proporciona una "Respuesta Ideal" (Modo Espejo) que el candidato debería haber dado para sonar como un profesional senior.
-  4. Devuelve el análisis estrictamente en formato JSON.`;
+  Analiza estructura STAR, tono y asertividad. Proporciona una "Respuesta Ideal" senior.`;
 
   const response = await ai.models.generateContent({
     model: 'gemini-3-pro-preview',
@@ -120,19 +114,12 @@ export const generateSessionSummary = async (
   config: SessionConfig
 ): Promise<{ overallSummary: string, fillerWordAnalysis: string, mistakes: string[], overallScore: number }> => {
   const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || "" });
-  const transcript = questions.map(q => `Pregunta: ${q.question}\nRespuesta: ${q.originalResponse}`).join('\n\n');
+  const transcript = questions.map(q => `P: ${q.question}\nR: ${q.originalResponse}`).join('\n\n');
   
-  const prompt = `Actúa como un Consultor de Selección Senior. Analiza el rendimiento global de esta sesión de práctica en ESPAÑOL:
-  ${transcript}
-  Contexto del Cargo: ${config.role}.
-  
-  Tareas:
-  1. Redacta un resumen ejecutivo del desempeño.
-  2. Analiza el uso de muletillas y fluidez verbal.
-  3. Identifica 3 errores críticos cometidos.
-  4. Asigna una calificación global de competencia (0-100).
-  
-  Devuelve el resultado estrictamente en formato JSON.`;
+  const prompt = `Genera un resumen ejecutivo del desempeño de la entrevista para: ${config.role}.
+  Analiza muletillas, fluidez y errores críticos.
+  Califica de 0 a 100.
+  Devuelve JSON.`;
 
   const response = await ai.models.generateContent({
     model: 'gemini-3-pro-preview',
