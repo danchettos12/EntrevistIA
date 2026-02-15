@@ -63,7 +63,7 @@ const InterviewSession: React.FC<InterviewSessionProps> = ({ config, userId, onF
   }, [currentIdx]);
 
   const forceStart = () => {
-    setQuestion("Cuéntame sobre un desafío importante que hayas enfrentado en tu carrera.");
+    setQuestion("Cuéntame sobre una situación donde tuviste que resolver un problema bajo presión.");
     setLoading(false);
     setShowForceBtn(false);
     startTimer();
@@ -128,7 +128,7 @@ const InterviewSession: React.FC<InterviewSessionProps> = ({ config, userId, onF
       mediaRecorder.start();
       setIsRecording(true);
     } catch (err) {
-      alert("Error al acceder al micrófono. Por favor, revisa los permisos.");
+      alert("No se pudo acceder al micrófono.");
     }
   };
 
@@ -144,13 +144,12 @@ const InterviewSession: React.FC<InterviewSessionProps> = ({ config, userId, onF
     if (timerRef.current) clearInterval(timerRef.current);
     if (isRecording) stopRecording();
 
-    // Esperar a que cualquier transcripción en curso termine
     if (transcriptionPromiseRef.current) {
       await transcriptionPromiseRef.current;
     }
 
     try {
-      const finalRes = response.trim() || "Respuesta breve del candidato.";
+      const finalRes = response.trim() || "Respuesta breve del usuario.";
       const feedback = await analyzeQuestionResponse(question, finalRes, config);
       const updatedResults = [...results, feedback];
       setResults(updatedResults);
@@ -179,29 +178,15 @@ const InterviewSession: React.FC<InterviewSessionProps> = ({ config, userId, onF
 
   if (loading || processing) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-12 animate-fadeIn text-center px-4">
-        <div className="relative w-32 h-32">
-          <div className="absolute inset-0 border-4 border-blue-600/10 rounded-full"></div>
-          <div className="absolute inset-0 border-t-4 border-blue-600 rounded-full animate-spin"></div>
-          <div className="absolute inset-0 flex items-center justify-center">
-             <i className="ph-bold ph-brain text-4xl text-blue-500 animate-pulse"></i>
-          </div>
-        </div>
-        <div className="space-y-6">
-          <h2 className="text-white font-bold uppercase tracking-[0.4em] text-xs">
-            {processing ? 'Sincronizando con Gemini Pro...' : 'Preparando Escenario IA...'}
+      <div className="flex flex-col items-center justify-center min-h-[50vh] space-y-8 animate-fadeIn text-center px-4">
+        <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+        <div className="space-y-3">
+          <h2 className="text-white font-bold uppercase tracking-widest text-[10px]">
+            {processing ? 'Analizando tu respuesta...' : 'Preparando la pregunta...'}
           </h2>
-          <p className="text-slate-500 text-[10px] uppercase tracking-widest max-w-sm">
-            {processing ? 'Analizando estructura STAR y coherencia narrativa.' : 'Generando pregunta personalizada según tu perfil profesional.'}
+          <p className="text-slate-500 text-[10px] uppercase tracking-widest">
+            {processing ? 'Un momento mientras generamos tu feedback personalizado.' : 'Personalizando la experiencia según tu perfil.'}
           </p>
-          {showForceBtn && (
-            <button 
-              onClick={forceStart}
-              className="mt-8 px-8 py-4 bg-white/5 border border-white/10 text-blue-400 hover:text-white hover:bg-white/10 rounded-2xl text-[9px] font-bold uppercase tracking-widest transition-all shadow-xl"
-            >
-              ¿La red está lenta? Forzar inicio manual
-            </button>
-          )}
         </div>
       </div>
     );
@@ -211,47 +196,46 @@ const InterviewSession: React.FC<InterviewSessionProps> = ({ config, userId, onF
     <div className="max-w-4xl mx-auto space-y-8 py-10 animate-fadeIn px-4">
       <div className="flex justify-between items-center px-4">
         <div className="flex flex-col">
-          <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Módulo de Simulación</span>
+          <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Sesión de práctica</span>
           <span className="text-white font-bold text-sm">Pregunta {currentIdx + 1} de {config.questionCount}</span>
         </div>
-        <div className={`px-5 py-2 rounded-xl border-2 font-mono text-sm flex items-center gap-3 transition-colors ${timeLeft < 20 ? 'bg-red-500/10 border-red-500/40 text-red-400' : 'bg-white/5 border-white/10 text-slate-400'}`}>
-          <i className="ph-bold ph-timer"></i> {Math.floor(timeLeft / 60)}:{(timeLeft % 60).toString().padStart(2, '0')}
+        <div className={`px-4 py-1.5 rounded-lg border font-mono text-xs flex items-center gap-2 transition-colors ${timeLeft < 20 ? 'bg-red-500/10 border-red-500/40 text-red-400' : 'bg-white/5 border-white/10 text-slate-400'}`}>
+          <i className="ph ph-clock"></i> {Math.floor(timeLeft / 60)}:{(timeLeft % 60).toString().padStart(2, '0')}
         </div>
       </div>
 
-      <div className="glass p-12 rounded-[2.5rem] border-l-8 border-blue-600 shadow-2xl">
-        <h2 className="text-2xl font-bold text-white leading-tight">{question}</h2>
+      <div className="glass p-10 rounded-[2rem] border-l-4 border-blue-500 shadow-2xl">
+        <h2 className="text-xl md:text-2xl font-bold text-white leading-relaxed">{question}</h2>
       </div>
 
       <div className="relative group">
         <textarea 
           value={response}
           onChange={(e) => setResponse(e.target.value)}
-          className="w-full h-80 p-12 rounded-[2.5rem] glass border border-white/5 outline-none text-xl text-slate-200 resize-none placeholder:text-slate-800 transition-all focus:border-blue-500/30"
-          placeholder="Comienza a hablar o escribe tu respuesta aquí..."
+          className="w-full h-72 p-10 rounded-[2rem] glass border border-white/5 outline-none text-lg text-slate-200 resize-none placeholder:text-slate-800 transition-all focus:border-blue-500/20"
+          placeholder="Escribe tu respuesta o usa el micrófono para hablar..."
         />
         
-        <div className="absolute bottom-8 right-8 flex items-center gap-6">
-          {transcribing && <span className="text-[10px] font-bold text-blue-400 uppercase tracking-widest animate-pulse">Procesando Voz...</span>}
+        <div className="absolute bottom-6 right-6 flex items-center gap-4">
+          {transcribing && <span className="text-[10px] font-bold text-blue-400 uppercase tracking-widest animate-pulse">Escuchando...</span>}
           <button 
             onClick={() => isRecording ? stopRecording() : startRecording()}
             disabled={transcribing}
-            title={isRecording ? "Detener grabación" : "Grabar respuesta"}
-            className={`w-20 h-20 rounded-3xl flex items-center justify-center transition-all shadow-2xl ${isRecording ? 'bg-red-600 text-white scale-110' : 'bg-white text-slate-900 hover:scale-105'}`}
+            className={`w-16 h-16 rounded-2xl flex items-center justify-center transition-all shadow-xl ${isRecording ? 'bg-red-600 text-white animate-pulse' : 'bg-white text-slate-900 hover:scale-105'}`}
           >
-            <i className={`ph-bold ${isRecording ? 'ph-stop' : 'ph-microphone-stage'} text-3xl`}></i>
+            <i className={`ph-bold ${isRecording ? 'ph-stop' : 'ph-microphone'} text-2xl`}></i>
           </button>
         </div>
       </div>
 
       <div className="flex gap-4 justify-end items-center">
-        <button onClick={onCancel} className="px-8 py-5 rounded-2xl text-slate-500 font-bold hover:text-red-400 uppercase text-[10px] tracking-widest transition-colors">Cancelar</button>
+        <button onClick={onCancel} className="px-6 py-4 rounded-xl text-slate-500 font-bold hover:text-white uppercase text-[10px] tracking-widest transition-colors">Cancelar</button>
         <button 
           onClick={handleNext} 
           disabled={!response.trim() || transcribing || processing} 
-          className="bg-blue-600 hover:bg-blue-500 text-white font-bold py-5 px-12 rounded-2xl uppercase text-[10px] tracking-[0.2em] transition-all disabled:opacity-20 shadow-xl shadow-blue-900/20"
+          className="bg-blue-600 hover:bg-blue-500 text-white font-bold py-4 px-10 rounded-xl uppercase text-[10px] tracking-[0.2em] transition-all disabled:opacity-20 shadow-lg"
         >
-          {currentIdx + 1 === config.questionCount ? 'Finalizar y Analizar' : 'Siguiente Pregunta'}
+          {currentIdx + 1 === config.questionCount ? 'Finalizar práctica' : 'Siguiente pregunta'}
         </button>
       </div>
     </div>

@@ -12,48 +12,48 @@ interface SetupFormProps {
 const PRESETS = [
   { 
     id: 'swe', 
-    role: 'Senior Software Engineer', 
-    pressure: 75, 
+    role: 'Desarrollador de Software', 
+    pressure: 60, 
     focus: 40, 
     icon: 'ph-code', 
     label: 'Tecnología',
-    desc: 'Algoritmos y Arquitectura'
+    desc: 'Lógica y procesos'
   },
   { 
     id: 'pm', 
-    role: 'Project Manager', 
-    pressure: 60, 
-    focus: 85, 
+    role: 'Gestor de Proyectos', 
+    pressure: 50, 
+    focus: 80, 
     icon: 'ph-kanban', 
     label: 'Gestión',
-    desc: 'Liderazgo y Crisis'
+    desc: 'Equipos y plazos'
   },
   { 
     id: 'mkt', 
-    role: 'Marketing Director', 
-    pressure: 50, 
+    role: 'Marketing', 
+    pressure: 40, 
     focus: 70, 
     icon: 'ph-megaphone', 
     label: 'Estrategia',
-    desc: 'Impacto y Narrativa'
+    desc: 'Comunicación'
   },
   { 
     id: 'sales', 
-    role: 'Sales Executive', 
-    pressure: 90, 
+    role: 'Ventas', 
+    pressure: 70, 
     focus: 60, 
     icon: 'ph-chart-line-up', 
     label: 'Comercial',
-    desc: 'Resultados y Negociación'
+    desc: 'Negociación'
   },
   { 
     id: 'data', 
-    role: 'Data Analyst', 
-    pressure: 65, 
+    role: 'Analista de Datos', 
+    pressure: 55, 
     focus: 30, 
     icon: 'ph-database', 
     label: 'Análisis',
-    desc: 'Lógica y Datos'
+    desc: 'Datos y hallazgos'
   }
 ];
 
@@ -82,16 +82,15 @@ const SetupForm: React.FC<SetupFormProps> = ({ initialRole, onStart, onBack }) =
   };
 
   return (
-    <div className="max-w-4xl mx-auto glass rounded-[2.5rem] border border-white/10 overflow-hidden animate-fadeIn shadow-2xl">
-      <div className="bg-slate-800/80 p-8 text-white border-b border-white/5">
-        <h2 className="text-xl font-bold uppercase tracking-[0.3em] italic">Configuración de Simulación</h2>
-        <p className="text-slate-400 mt-1 text-[10px] font-bold uppercase tracking-widest">Ajuste los parámetros del motor de IA para su perfil.</p>
+    <div className="max-w-4xl mx-auto glass rounded-[2rem] border border-white/10 overflow-hidden animate-fadeIn shadow-2xl">
+      <div className="bg-slate-800/40 p-8 text-white border-b border-white/5">
+        <h2 className="text-xl font-bold uppercase tracking-widest">Configura tu práctica</h2>
+        <p className="text-slate-400 mt-1 text-[10px] font-bold uppercase tracking-widest">Personaliza la sesión según tus objetivos actuales.</p>
       </div>
       
       <div className="p-10 space-y-10">
-        {/* Sección de Presets */}
         <div className="space-y-4">
-          <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest">Presets Profesionales Populares</label>
+          <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest">Selecciona un área de interés</label>
           <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
             {PRESETS.map((p) => (
               <button
@@ -122,7 +121,7 @@ const SetupForm: React.FC<SetupFormProps> = ({ initialRole, onStart, onBack }) =
         <div className="h-px bg-white/5"></div>
 
         <div className="space-y-3">
-          <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest">Cargo Específico u Objetivo</label>
+          <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest">¿Para qué puesto te estás preparando?</label>
           <div className="relative">
             <input 
               type="text" 
@@ -132,11 +131,8 @@ const SetupForm: React.FC<SetupFormProps> = ({ initialRole, onStart, onBack }) =
                 setActivePreset(null);
               }}
               className="w-full px-8 py-5 rounded-2xl bg-white/5 border border-white/10 focus:border-blue-500/50 text-white outline-none transition-all font-medium text-lg placeholder:text-slate-700"
-              placeholder="Ej: Gerente de Operaciones Senior..."
+              placeholder="Ej: Administrador, Desarrollador, etc."
             />
-            <div className="absolute right-6 top-1/2 -translate-y-1/2 opacity-20">
-              <i className="ph-bold ph-identification-badge text-2xl"></i>
-            </div>
           </div>
         </div>
 
@@ -144,10 +140,10 @@ const SetupForm: React.FC<SetupFormProps> = ({ initialRole, onStart, onBack }) =
           <div className="space-y-6">
             <div className="flex justify-between items-center">
               <div className="flex flex-col">
-                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Intensidad del Rigor</label>
-                <span className="text-[9px] text-slate-600 uppercase font-medium">Dificultad de las contra-preguntas</span>
+                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Nivel de Desafío</label>
+                <span className="text-[9px] text-slate-600 uppercase font-medium">Complejidad de las preguntas</span>
               </div>
-              <span className={`text-xs font-mono font-bold px-3 py-1 rounded-full ${config.pressure > 70 ? 'bg-red-500/10 text-red-400' : 'bg-blue-500/10 text-blue-400'}`}>
+              <span className={`text-xs font-mono font-bold px-3 py-1 rounded-full ${config.pressure > 70 ? 'bg-amber-500/10 text-amber-400' : 'bg-blue-500/10 text-blue-400'}`}>
                 {config.pressure}%
               </span>
             </div>
@@ -166,8 +162,8 @@ const SetupForm: React.FC<SetupFormProps> = ({ initialRole, onStart, onBack }) =
           <div className="space-y-6">
             <div className="flex justify-between items-center">
               <div className="flex flex-col">
-                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Enfoque Analítico</label>
-                <span className="text-[9px] text-slate-600 uppercase font-medium">Conductual STAR vs Técnico/Lógico</span>
+                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Enfoque de la IA</label>
+                <span className="text-[9px] text-slate-600 uppercase font-medium">Prioridad en habilidades blandas (STAR)</span>
               </div>
               <span className="text-xs font-mono font-bold px-3 py-1 bg-emerald-500/10 text-emerald-400 rounded-full">
                 {config.focus}% STAR
@@ -186,65 +182,19 @@ const SetupForm: React.FC<SetupFormProps> = ({ initialRole, onStart, onBack }) =
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
-          <div className="space-y-6">
-            <div className="flex justify-between items-center">
-              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Volumen de Evaluación</label>
-              <span className="text-xs font-bold text-white">{config.questionCount} Preguntas</span>
-            </div>
-            <div className="flex gap-2">
-              {[3, 5, 8, 10].map((n) => (
-                <button
-                  key={n}
-                  onClick={() => setConfig({...config, questionCount: n})}
-                  className={`flex-1 py-3 rounded-xl border text-[10px] font-bold transition-all ${
-                    config.questionCount === n 
-                      ? 'bg-white text-slate-900 border-white' 
-                      : 'bg-white/5 border-white/5 text-slate-500 hover:text-white'
-                  }`}
-                >
-                  {n} Qs
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div className="space-y-6">
-            <div className="flex justify-between items-center">
-              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Límite por Respuesta</label>
-              <span className="text-xs font-bold text-white">{formatTime(config.timeLimit)}</span>
-            </div>
-            <div className="flex gap-2">
-              {[60, 120, 180, 300].map((t) => (
-                <button
-                  key={t}
-                  onClick={() => setConfig({...config, timeLimit: t})}
-                  className={`flex-1 py-3 rounded-xl border text-[10px] font-bold transition-all ${
-                    config.timeLimit === t 
-                      ? 'bg-white text-slate-900 border-white' 
-                      : 'bg-white/5 border-white/5 text-slate-500 hover:text-white'
-                  }`}
-                >
-                  {t/60}m
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
-
         <div className="flex gap-4 pt-8 border-t border-white/5">
           <button 
             onClick={onBack}
             className="flex-1 px-8 py-5 rounded-2xl text-slate-500 font-bold hover:text-white transition-all uppercase text-[10px] tracking-widest border border-transparent hover:border-white/5"
           >
-            Volver al Panel
+            Cancelar
           </button>
           <button 
             onClick={() => onStart(config)}
             className="flex-[2] px-8 py-5 rounded-2xl bg-blue-600 text-white font-bold hover:bg-blue-500 shadow-2xl shadow-blue-900/40 transition-all uppercase text-[10px] tracking-[0.2em] flex items-center justify-center gap-3"
           >
-            Iniciar Simulación Élite
-            <i className="ph-bold ph-play"></i>
+            Comenzar Sesión
+            <i className="ph-bold ph-arrow-right"></i>
           </button>
         </div>
       </div>

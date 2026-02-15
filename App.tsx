@@ -33,7 +33,6 @@ const App: React.FC = () => {
         setUser(loggedUser);
         fetchSessions(session.user.id);
         
-        // Redirigir al Dashboard si estaba en login o landing
         setView(prev => {
           if (prev === AppView.AUTH || prev === AppView.LANDING) {
             return AppView.DASHBOARD;
@@ -43,7 +42,6 @@ const App: React.FC = () => {
       } else {
         setUser(null);
         setSessions([]);
-        // Si no hay usuario y no estamos en landing/auth, ir a landing
         setView(prev => {
           if (prev !== AppView.LANDING && prev !== AppView.AUTH) {
             return AppView.LANDING;
@@ -88,14 +86,13 @@ const App: React.FC = () => {
     return (
       <div className="min-h-screen bg-[#020617] flex items-center justify-center">
         <div className="flex flex-col items-center gap-4">
-          <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
-          <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">EntrevistIA Elite...</span>
+          <div className="w-10 h-10 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+          <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Iniciando EntrevistIA...</span>
         </div>
       </div>
     );
   }
 
-  // Fallback de seguridad: si no hay usuario y no estamos en vistas públicas, forzar Landing
   const safeView = (!user && view !== AppView.LANDING && view !== AppView.AUTH) ? AppView.LANDING : view;
 
   return (
@@ -105,12 +102,12 @@ const App: React.FC = () => {
           <div className="glass px-6 py-3 rounded-xl flex items-center justify-between shadow-2xl">
             <div className="flex items-center gap-3 cursor-pointer" onClick={() => setView(AppView.DASHBOARD)}>
               <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center text-white font-bold">
-                <i className="ph-bold ph-briefcase"></i>
+                <i className="ph-bold ph-chats"></i>
               </div>
               <span className="text-lg font-bold tracking-tighter text-white uppercase">EntrevistIA</span>
             </div>
             <nav className="flex gap-6 items-center">
-              <button onClick={() => setView(AppView.DASHBOARD)} className="text-[10px] font-bold uppercase tracking-widest text-slate-400 hover:text-white transition-colors">Panel</button>
+              <button onClick={() => setView(AppView.DASHBOARD)} className="text-[10px] font-bold uppercase tracking-widest text-slate-400 hover:text-white transition-colors">Inicio</button>
               <button onClick={handleLogout} className="text-[10px] font-bold text-slate-500 uppercase tracking-widest hover:text-red-400 transition-colors">Salir</button>
             </nav>
           </div>
@@ -122,7 +119,7 @@ const App: React.FC = () => {
           <LandingView 
             onGetStarted={() => { setAuthMode('register'); setView(AppView.AUTH); }} 
             onLogin={() => { setAuthMode('login'); setView(AppView.AUTH); }} 
-            onSkip={() => { setAuthMode('login'); setView(AppView.AUTH); }} // Forzamos login si intentan saltar sin cuenta
+            onSkip={() => { setAuthMode('login'); setView(AppView.AUTH); }}
           />
         )}
         

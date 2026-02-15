@@ -35,14 +35,14 @@ export const generateInterviewQuestion = async (config: SessionConfig, previousQ
 
   try {
     const ai = new GoogleGenAI({ apiKey });
-    const prompt = `Rol: ${config.role}. Rigor: ${config.pressure}. Historial: ${previousQuestions.join(', ')}. Genera UNA pregunta de entrevista conductual nivel senior en español. Solo la pregunta, sin introducciones.`;
+    const prompt = `Actúa como un reclutador de élite. Para el rol de ${config.role}, con una rigurosidad de ${config.pressure}/100, genera UNA pregunta conductual desafiante en español que requiera una respuesta estructurada. Evita estas preguntas: ${previousQuestions.join(', ')}. Solo entrega el texto de la pregunta.`;
     
     const apiCall = ai.models.generateContent({
       model: 'gemini-3-flash-preview',
       contents: prompt
     }).then(res => res.text?.trim() || fallback);
 
-    return await withTimeout(apiCall, 5000, fallback);
+    return await withTimeout(apiCall, 6000, fallback);
   } catch (error) {
     console.error("Gemini Error (Question):", error);
     return fallback;
@@ -60,16 +60,27 @@ export const analyzeQuestionResponse = async (
     originalResponse: userResponse,
     idealResponse: userResponse,
     highlights: [],
-    starAnalysis: { situation: "No analizado", task: "No analizado", action: "No analizado", result: "No analizado", score: 50 },
-    toneScore: 50, toneExplanation: "Análisis local por timeout", assertivenessScore: 50, assertivenessExplanation: "Análisis local",
-    generalFeedback: "La IA tardó demasiado en responder. Se guardó tu respuesta pero el análisis detallado no está disponible."
+    starAnalysis: { situation: "No analizado", task: "No analizado", action: "No analizado", result: "No analizado", score: 0 },
+    toneScore: 0, toneExplanation: "Análisis no disponible", assertivenessScore: 0, assertivenessExplanation: "Análisis no disponible",
+    generalFeedback: "Hubo un problema al procesar el análisis detallado."
   };
 
   if (!apiKey || userResponse.length < 5) return emptyFeedback;
 
   try {
     const ai = new GoogleGenAI({ apiKey });
-    const prompt = `Analiza bajo metodología STAR esta respuesta para el cargo ${config.role}:\nPregunta: ${question}\nRespuesta: ${userResponse}`;
+    const prompt = `Actúa como un Coach de Carreras Senior. Analiza la siguiente respuesta de entrevista bajo la metodología STAR.
+    
+Cargo: ${config.role}
+Pregunta: ${question}
+Respuesta del Candidato: ${userResponse}
+
+Instrucciones Críticas:
+1. Desglosa la respuesta en Situación, Tarea, Acción y Resultado.
+2. Si un componente NO está presente o es muy vago, indica explícitamente "Faltante: [explicación de qué debería haber dicho]".
+3. La 'idealResponse' debe ser una versión mejorada, impactante y profesional de la respuesta del usuario siguiendo perfectamente el método STAR.
+4. Evalúa el tono y la asertividad de forma técnica.
+5. Proporciona un feedback general constructivo en español.`;
     
     const apiCall = ai.models.generateContent({
       model: 'gemini-3-pro-preview',
@@ -88,18 +99,22 @@ export const analyzeQuestionResponse = async (
                 action: { type: Type.STRING },
                 result: { type: Type.STRING },
                 score: { type: Type.NUMBER }
-              }
+              },
+              required: ["situation", "task", "action", "result", "score"]
             },
             toneScore: { type: Type.NUMBER },
             toneExplanation: { type: Type.STRING },
             assertivenessScore: { type: Type.NUMBER },
             assertivenessExplanation: { type: Type.STRING },
             generalFeedback: { type: Type.STRING }
-          }
+          },
+          required: ["idealResponse", "starAnalysis", "toneScore", "toneExplanation", "assertivenessScore", "assertivenessExplanation", "generalFeedback"]
         }
       }
     }).then(res => {
-      const data = JSON.parse(cleanJsonResponse(res.text || '{}'));
+      const text = res.text;
+      if (!text) throw new Error("No response text");
+      const data = JSON.parse(cleanJsonResponse(text));
       return {
         ...emptyFeedback,
         ...data,
@@ -107,7 +122,8 @@ export const analyzeQuestionResponse = async (
       };
     });
 
-    return await withTimeout(apiCall, 10000, emptyFeedback);
+    // Aumentamos el timeout a 15s para dar tiempo al razonamiento profundo de Pro
+    return await withTimeout(apiCall, 15000, emptyFeedback);
   } catch (error) {
     console.error("Gemini Error (Analysis):", error);
     return emptyFeedback;
@@ -119,10 +135,10 @@ export const generateSessionSummary = async (
   config: SessionConfig
 ): Promise<{ overallSummary: string, fillerWordAnalysis: string, mistakes: string[], overallScore: number }> => {
   const fallbackSummary = {
-    overallSummary: "Sesión completada con éxito. Enfócate en la estructura STAR.",
-    fillerWordAnalysis: "Buen ritmo de habla.",
-    mistakes: ["Asegúrate de cuantificar tus resultados."],
-    overallScore: 80
+    overallSummary: "Sesión completada. Revisa el detalle de tus respuestas para mejorar.",
+    fillerWordAnalysis: "Análisis de fluidez pendiente.",
+    mistakes: ["No se pudieron identificar errores específicos por un problema técnico."],
+    overallScore: 50
   };
 
   const apiKey = getApiKey();
@@ -130,8 +146,13 @@ export const generateSessionSummary = async (
 
   try {
     const ai = new GoogleGenAI({ apiKey });
-    const context = questions.map(q => `Q: ${q.question}\nA: ${q.originalResponse}`).join("\n\n");
-    const prompt = `Analiza el desempeño general de esta entrevista para ${config.role} basándote en estas respuestas:\n${context}\n\nGenera un resumen, análisis de muletillas y score del 1 al 100.`;
+    const context = questions.map(q => `P: ${q.question}\nR: ${q.originalResponse}\nFeedback: ${q.generalFeedback}`).join("\n\n");
+    const prompt = `Eres un experto en oratoria y comunicación. Resume el desempeño global de esta entrevista para ${config.role}. 
+    Contexto de la sesión:\n${context}\n\nAnaliza: 
+    1. Resumen general. 
+    2. Uso de muletillas y fluidez. 
+    3. Lista de 3 errores críticos detectados. 
+    4. Puntaje final del 1 al 100.`;
     
     const apiCall = ai.models.generateContent({
       model: 'gemini-3-pro-preview',
@@ -145,12 +166,17 @@ export const generateSessionSummary = async (
             fillerWordAnalysis: { type: Type.STRING },
             mistakes: { type: Type.ARRAY, items: { type: Type.STRING } },
             overallScore: { type: Type.NUMBER }
-          }
+          },
+          required: ["overallSummary", "fillerWordAnalysis", "mistakes", "overallScore"]
         }
       }
-    }).then(res => JSON.parse(cleanJsonResponse(res.text || '{}')));
+    }).then(res => {
+      const text = res.text;
+      if (!text) throw new Error("No summary text");
+      return JSON.parse(cleanJsonResponse(text));
+    });
 
-    return await withTimeout(apiCall, 8000, fallbackSummary);
+    return await withTimeout(apiCall, 10000, fallbackSummary);
   } catch (error) {
     console.error("Summary Error:", error);
     return fallbackSummary;
@@ -165,7 +191,7 @@ export const transcribeAudio = async (base64Audio: string, mimeType: string): Pr
     const ai = new GoogleGenAI({ apiKey });
     const response = await ai.models.generateContent({
       model: 'gemini-3-flash-preview',
-      contents: [{ parts: [{ inlineData: { mimeType, data: base64Audio } }, { text: "Transcribe exactamente lo que escuchas." }] }]
+      contents: [{ parts: [{ inlineData: { mimeType, data: base64Audio } }, { text: "Transcribe exactamente lo que escuchas en español. Si no hay audio legible, devuelve un string vacío." }] }]
     });
     return response.text?.trim() || "";
   } catch {
