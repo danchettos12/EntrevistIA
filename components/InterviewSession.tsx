@@ -153,7 +153,7 @@ const InterviewSession: React.FC<InterviewSessionProps> = ({ config, userId, onF
     }
 
     try {
-      const finalRes = response.trim() || "El usuario no proporcionó una respuesta detallada.";
+      const finalRes = response.trim() || "Respuesta no proporcionada por el usuario.";
       const feedback = await analyzeQuestionResponse(question, finalRes, config);
       const updatedResults = [...results, feedback];
       setResults(updatedResults);
@@ -163,37 +163,42 @@ const InterviewSession: React.FC<InterviewSessionProps> = ({ config, userId, onF
         setCurrentIdx(prev => prev + 1);
         setProcessing(false);
       } else {
-        // En la última pregunta, generamos el resumen
         try {
           const summary = await generateSessionSummary(updatedResults, config);
-          onFinish({
+          const finalRecord: SessionRecord = {
             id: 'session_' + Date.now(),
             userId,
             timestamp: Date.now(),
             config,
             questions: updatedResults,
-            ...summary
-          });
+            overallScore: summary.overallScore || 0,
+            overallSummary: summary.overallSummary || "Resumen no disponible.",
+            fillerWordAnalysis: summary.fillerWordAnalysis || "No se detectaron suficientes datos de audio.",
+            mistakes: summary.mistakes || [],
+            communicationMetrics: summary.communicationMetrics || { pacing: 0, vocabulary: 0, clarity: 0, confidence: 0 },
+            improvementPlan: summary.improvementPlan || []
+          };
+          onFinish(finalRecord);
         } catch (summaryErr) {
-          console.error("Final summary error, finishing anyway:", summaryErr);
-          // Fallback manual si falla todo
-          onFinish({
+          console.error("Final summary error:", summaryErr);
+          const fallbackRecord: SessionRecord = {
             id: 'session_' + Date.now(),
             userId,
             timestamp: Date.now(),
             config,
             questions: updatedResults,
-            overallScore: 70,
-            overallSummary: "Sesión completada satisfactoriamente. Revisa el análisis STAR de cada pregunta.",
-            fillerWordAnalysis: "Análisis de oratoria no disponible para esta sesión.",
-            mistakes: ["No se pudieron extraer errores críticos automáticamente."],
-            improvementPlan: ["Sigue practicando con el método STAR.", "Mejora la estructura de tus respuestas."]
-          });
+            overallScore: 60,
+            overallSummary: "Sesión completada satisfactoriamente. El análisis global falló pero el detalle STAR está disponible.",
+            fillerWordAnalysis: "Análisis no disponible.",
+            mistakes: ["Error en el motor de análisis global."],
+            communicationMetrics: { pacing: 50, vocabulary: 50, clarity: 50, confidence: 50 },
+            improvementPlan: ["Revisa tus respuestas individuales para feedback detallado."]
+          };
+          onFinish(fallbackRecord);
         }
       }
     } catch (err) {
       console.error("Error crítico en handleNext:", err);
-      // Si falla todo, al menos cerramos la sesión para no quedar atrapados
       onCancel();
     }
   };

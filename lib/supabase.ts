@@ -21,7 +21,6 @@ const createInternalClient = () => {
     listeners.forEach(cb => cb(event, session));
   };
 
-  // Generar un ID estable basado en el email para que las sesiones no se pierdan al refrescar
   const getDeterministicId = (email: string) => {
     return 'user_local_' + btoa(email).replace(/[^a-zA-Z0-0]/g, '').slice(0, 15);
   };
@@ -73,10 +72,9 @@ const createInternalClient = () => {
       const saveData = (data: any[]) => localStorage.setItem(`entrevistia_db_${table}`, JSON.stringify(data));
 
       return {
-        select: (columns: string = '*') => {
+        select: () => {
           let currentData = getData();
           
-          // Fix: Explicitly type chain as any to break recursive type inference causing deep instantiation issues
           const chain: any = {
             eq: (col: string, val: any) => {
               currentData = currentData.filter((item: any) => item[col] === val);
@@ -90,7 +88,6 @@ const createInternalClient = () => {
               });
               return Promise.resolve({ data: currentData, error: null });
             },
-            // Permitir terminar la cadena sin order
             then: (onfulfilled?: (value: any) => any) => {
               return Promise.resolve({ data: currentData, error: null }).then(onfulfilled);
             }

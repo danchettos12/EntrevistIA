@@ -3,26 +3,30 @@ import { supabase } from '../lib/supabase.ts';
 import { SessionRecord } from '../types.ts';
 
 export const saveSession = async (session: Omit<SessionRecord, 'id'>): Promise<SessionRecord | null> => {
-  if (!supabase) return null;
+  if (!supabase) {
+    console.error("Database Error: Supabase client is not initialized.");
+    return null;
+  }
 
   try {
-    // Aseguramos que el timestamp se pase como string ISO para la base de datos
     const isoTimestamp = session.timestamp ? new Date(session.timestamp).toISOString() : new Date().toISOString();
 
-    const { data, error } = await supabase
+    const insertData = {
+      user_id: session.userId,
+      timestamp: isoTimestamp,
+      config: session.config,
+      overall_score: session.overallScore,
+      overall_summary: session.overallSummary,
+      filler_word_analysis: session.fillerWordAnalysis,
+      mistakes: session.mistakes,
+      questions: session.questions,
+      communication_metrics: session.communicationMetrics,
+      improvement_plan: session.improvementPlan
+    };
+
+    const { data, error } = await (supabase as any)
       .from('sessions')
-      .insert([{
-        user_id: session.userId,
-        timestamp: isoTimestamp,
-        config: session.config,
-        overall_score: session.overallScore,
-        overall_summary: session.overallSummary,
-        filler_word_analysis: session.fillerWordAnalysis,
-        mistakes: session.mistakes,
-        questions: session.questions,
-        communication_metrics: session.communicationMetrics,
-        improvement_plan: session.improvementPlan
-      }])
+      .insert([insertData])
       .select()
       .single();
 
@@ -31,13 +35,17 @@ export const saveSession = async (session: Omit<SessionRecord, 'id'>): Promise<S
       throw error;
     }
 
+    if (!data) {
+      console.error("Supabase error: No data returned after insert.");
+      return null;
+    }
+
     return {
       id: data.id,
       userId: data.user_id,
       timestamp: new Date(data.timestamp).getTime(),
       config: data.config,
       overallScore: data.overall_score,
-      // Fix: Removed 'overall_summary' which does not exist in SessionRecord type (use overallSummary instead)
       overallSummary: data.overall_summary,
       fillerWordAnalysis: data.filler_word_analysis,
       mistakes: data.mistakes,
@@ -46,7 +54,7 @@ export const saveSession = async (session: Omit<SessionRecord, 'id'>): Promise<S
       improvementPlan: data.improvement_plan
     };
   } catch (err) {
-    console.error("Error al guardar sesión detallado:", err);
+    console.error("Critical error saving session:", err);
     return null;
   }
 };
@@ -55,15 +63,16 @@ export const getUserSessions = async (userId: string): Promise<SessionRecord[]> 
   if (!supabase) return [];
 
   try {
-    // Fix: Cast supabase to any to resolve "Type instantiation is excessively deep" error
-    // which occurs due to the union type between the real Supabase client and the recursive mock client.
     const { data, error } = await (supabase as any)
       .from('sessions')
       .select('*')
       .eq('user_id', userId)
       .order('timestamp', { ascending: false });
 
-    if (error) throw error;
+    if (error) {
+      console.error("Error fetching sessions:", error);
+      throw error;
+    }
 
     return (data || []).map((s: any) => ({
       id: s.id,
@@ -79,7 +88,7 @@ export const getUserSessions = async (userId: string): Promise<SessionRecord[]> 
       improvementPlan: s.improvement_plan
     }));
   } catch (err) {
-    console.error("Error al obtener sesiones:", err);
+    console.error("Error in getUserSessions:", err);
     return [];
   }
 };
