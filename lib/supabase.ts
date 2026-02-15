@@ -74,9 +74,9 @@ const createMockClient = () => {
       }
     },
     from: (table: string) => ({
-      select: (columns: string = '*') => ({
+      select: (_columns: string = '*') => ({
         eq: (col: string, val: any) => ({
-          order: (colOrder: string, options: any) => {
+          order: (_colOrder: string, _options: any) => {
             let data = JSON.parse(localStorage.getItem(`entrevistia_mock_${table}`) || '[]');
             if (col && val) {
               data = data.filter((item: any) => item[col] === val);
@@ -84,7 +84,7 @@ const createMockClient = () => {
             return Promise.resolve({ data, error: null });
           }
         }),
-        order: (colOrder: string, options: any) => {
+        order: (_colOrder: string, _options: any) => {
             const data = JSON.parse(localStorage.getItem(`entrevistia_mock_${table}`) || '[]');
             return Promise.resolve({ data, error: null });
         }
