@@ -2,7 +2,11 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { SessionConfig, QuestionFeedback } from "../types.ts";
 
-const getApiKey = () => process.env.API_KEY || "";
+const getApiKey = () => {
+  const key = process.env.API_KEY;
+  if (!key || key === "undefined" || key === "null" || key.length < 10) return "";
+  return key;
+};
 
 const FALLBACK_QUESTIONS = [
   "Cuéntame sobre una situación donde tuviste que tomar una decisión difícil con poca información.",
@@ -38,7 +42,7 @@ export const generateInterviewQuestion = async (config: SessionConfig, previousQ
       contents: prompt
     }).then(res => res.text?.trim() || fallback);
 
-    return await withTimeout(apiCall, 8000, fallback);
+    return await withTimeout(apiCall, 5000, fallback);
   } catch (error) {
     console.error("Gemini Error (Question):", error);
     return fallback;
@@ -61,7 +65,7 @@ export const analyzeQuestionResponse = async (
     generalFeedback: "La IA tardó demasiado en responder. Se guardó tu respuesta pero el análisis detallado no está disponible."
   };
 
-  if (!apiKey || userResponse.length < 10) return emptyFeedback;
+  if (!apiKey || userResponse.length < 5) return emptyFeedback;
 
   try {
     const ai = new GoogleGenAI({ apiKey });
@@ -99,11 +103,11 @@ export const analyzeQuestionResponse = async (
       return {
         ...emptyFeedback,
         ...data,
-        highlights: [] // Simplificado para estabilidad
+        highlights: []
       };
     });
 
-    return await withTimeout(apiCall, 12000, emptyFeedback);
+    return await withTimeout(apiCall, 10000, emptyFeedback);
   } catch (error) {
     console.error("Gemini Error (Analysis):", error);
     return emptyFeedback;
@@ -122,20 +126,33 @@ export const generateSessionSummary = async (
   };
 
   const apiKey = getApiKey();
-  if (!apiKey) return fallbackSummary;
+  if (!apiKey || questions.length === 0) return fallbackSummary;
 
   try {
     const ai = new GoogleGenAI({ apiKey });
-    const prompt = `Resume esta sesión de entrevista para ${config.role} y calcula un score del 1 al 100.`;
+    const context = questions.map(q => `Q: ${q.question}\nA: ${q.originalResponse}`).join("\n\n");
+    const prompt = `Analiza el desempeño general de esta entrevista para ${config.role} basándote en estas respuestas:\n${context}\n\nGenera un resumen, análisis de muletillas y score del 1 al 100.`;
     
     const apiCall = ai.models.generateContent({
       model: 'gemini-3-pro-preview',
       contents: prompt,
-      config: { responseMimeType: "application/json" }
+      config: { 
+        responseMimeType: "application/json",
+        responseSchema: {
+          type: Type.OBJECT,
+          properties: {
+            overallSummary: { type: Type.STRING },
+            fillerWordAnalysis: { type: Type.STRING },
+            mistakes: { type: Type.ARRAY, items: { type: Type.STRING } },
+            overallScore: { type: Type.NUMBER }
+          }
+        }
+      }
     }).then(res => JSON.parse(cleanJsonResponse(res.text || '{}')));
 
-    return await withTimeout(apiCall, 10000, fallbackSummary);
+    return await withTimeout(apiCall, 8000, fallbackSummary);
   } catch (error) {
+    console.error("Summary Error:", error);
     return fallbackSummary;
   }
 };
@@ -148,7 +165,7 @@ export const transcribeAudio = async (base64Audio: string, mimeType: string): Pr
     const ai = new GoogleGenAI({ apiKey });
     const response = await ai.models.generateContent({
       model: 'gemini-3-flash-preview',
-      contents: [{ parts: [{ inlineData: { mimeType, data: base64Audio } }, { text: "Transcribe." }] }]
+      contents: [{ parts: [{ inlineData: { mimeType, data: base64Audio } }, { text: "Transcribe exactamente lo que escuchas." }] }]
     });
     return response.text?.trim() || "";
   } catch {
