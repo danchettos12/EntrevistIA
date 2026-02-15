@@ -1,4 +1,3 @@
-
 import { createClient } from '@supabase/supabase-js';
 
 const supabaseUrl = process.env.SUPABASE_URL;
@@ -15,8 +14,6 @@ const isValidUrl = (url: string | undefined): boolean => {
 };
 
 const createInternalClient = () => {
-  console.warn("⚠️ EntrevistIA: Operando en Modo Local (Base de datos del navegador activa)");
-  
   return {
     auth: {
       onAuthStateChange: (callback: any) => {
@@ -115,7 +112,6 @@ let client: any = null;
 const isCloudConfigured = isValidUrl(supabaseUrl) && supabaseAnonKey && supabaseAnonKey !== "undefined";
 
 if (isCloudConfigured) {
-  // Si hay credenciales válidas en el entorno, desactivamos automáticamente el modo local forzado
   localStorage.removeItem('entrevistia_force_local');
   try {
     client = createClient(supabaseUrl!, supabaseAnonKey!);
