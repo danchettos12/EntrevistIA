@@ -71,6 +71,14 @@ const App: React.FC = () => {
     }
     setUser(null);
     setView(AppView.LANDING);
+    if (supabase.isMock) {
+        window.location.reload();
+    }
+  };
+
+  const handleResetMode = () => {
+    localStorage.removeItem('entrevistia_force_local');
+    window.location.reload();
   };
 
   const handleFinishSession = async (record: SessionRecord) => {
@@ -128,6 +136,11 @@ const App: React.FC = () => {
             <nav className="flex gap-6 items-center">
               <button onClick={() => setView(AppView.DASHBOARD)} className={`text-[10px] font-bold uppercase tracking-widest ${view === AppView.DASHBOARD ? 'text-blue-400' : 'text-slate-400 hover:text-white'}`}>Panel</button>
               <button onClick={() => setView(AppView.DOCUMENTATION)} className={`text-[10px] font-bold uppercase tracking-widest ${view === AppView.DOCUMENTATION ? 'text-blue-400' : 'text-slate-400 hover:text-white'}`}>Manual</button>
+              
+              {supabase?.isMock && localStorage.getItem('entrevistia_force_local') === 'true' && (
+                <button onClick={handleResetMode} className="text-[10px] font-bold text-amber-500 uppercase tracking-widest hover:text-amber-400 transition-colors bg-amber-500/5 px-4 py-2 rounded-lg border border-amber-500/10">Reintentar Nube</button>
+              )}
+
               <button onClick={handleLogout} className="text-[10px] font-bold text-slate-500 uppercase tracking-widest hover:text-red-400 transition-colors bg-white/5 px-4 py-2 rounded-lg border border-white/5">Cerrar Sesión</button>
             </nav>
           </div>
