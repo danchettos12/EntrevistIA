@@ -1,5 +1,6 @@
 
 import React from 'react';
+import Logo from './Logo.tsx';
 
 interface LandingViewProps {
   onGetStarted: () => void;
@@ -13,8 +14,11 @@ const LandingView: React.FC<LandingViewProps> = ({ onGetStarted, onLogin, onSkip
       <section className="relative text-center space-y-12 px-4">
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[1000px] h-[500px] bg-blue-600/5 blur-[150px] -z-10 rounded-full"></div>
         
-        <div className="inline-block px-4 py-1.5 rounded-full border border-blue-500/20 bg-blue-500/5 text-[10px] font-bold text-blue-400 uppercase tracking-[0.2em] mb-4">
-          Impulsado por IA • Preparación Personalizada
+        <div className="flex flex-col items-center gap-6 mb-8">
+          <Logo className="h-16 md:h-20" />
+          <div className="inline-block px-4 py-1.5 rounded-full border border-blue-500/20 bg-blue-500/5 text-[10px] font-bold text-blue-400 uppercase tracking-[0.2em]">
+            Impulsado por IA • Preparación Personalizada
+          </div>
         </div>
 
         <h1 className="text-[12vw] md:text-[5.5rem] font-bold tracking-tighter leading-[0.95] text-white">

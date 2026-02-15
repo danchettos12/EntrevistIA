@@ -11,6 +11,7 @@ import FeedbackView from './components/FeedbackView.tsx';
 import AuthView from './components/AuthView.tsx';
 import LandingView from './components/LandingView.tsx';
 import DocumentationView from './components/DocumentationView.tsx';
+import Logo from './components/Logo.tsx';
 
 const App: React.FC = () => {
   const [user, setUser] = useState<User | null>(null);
@@ -91,9 +92,12 @@ const App: React.FC = () => {
   if (isLoading) {
     return (
       <div className="min-h-screen bg-[#020617] flex items-center justify-center">
-        <div className="flex flex-col items-center gap-4">
-          <div className="w-10 h-10 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
-          <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Iniciando EntrevistIA...</span>
+        <div className="flex flex-col items-center gap-6">
+          <Logo className="h-12" showText={false} />
+          <div className="w-8 h-1 bg-white/5 rounded-full overflow-hidden relative">
+            <div className="absolute inset-0 bg-blue-500 animate-shimmer"></div>
+          </div>
+          <span className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.3em]">Cargando EntrevistIA</span>
         </div>
       </div>
     );
@@ -105,14 +109,11 @@ const App: React.FC = () => {
     <div className={`min-h-screen flex flex-col ${safeView === AppView.LANDING ? 'mesh-bg' : 'dashboard-grid'}`}>
       {user && safeView !== AppView.LANDING && safeView !== AppView.AUTH && (
         <header className="fixed top-6 left-1/2 -translate-x-1/2 z-[100] w-[95%] max-w-7xl">
-          <div className="glass px-6 py-3 rounded-xl flex items-center justify-between shadow-2xl">
-            <div className="flex items-center gap-3 cursor-pointer" onClick={() => setView(AppView.DASHBOARD)}>
-              <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center text-white font-bold">
-                <i className="ph-bold ph-chats"></i>
-              </div>
-              <span className="text-lg font-bold tracking-tighter text-white uppercase">EntrevistIA</span>
+          <div className="glass px-8 py-4 rounded-[1.5rem] flex items-center justify-between shadow-2xl border-white/10">
+            <div className="cursor-pointer hover:opacity-80 transition-opacity" onClick={() => setView(AppView.DASHBOARD)}>
+              <Logo className="h-7" />
             </div>
-            <nav className="flex gap-6 items-center">
+            <nav className="flex gap-8 items-center">
               <button onClick={() => setView(AppView.DASHBOARD)} className="text-[10px] font-bold uppercase tracking-widest text-slate-400 hover:text-white transition-colors">Inicio</button>
               <button onClick={() => handleOpenDoc('star')} className="text-[10px] font-bold uppercase tracking-widest text-slate-400 hover:text-white transition-colors">Guías</button>
               <button onClick={handleLogout} className="text-[10px] font-bold text-slate-500 uppercase tracking-widest hover:text-red-400 transition-colors">Salir</button>
