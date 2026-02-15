@@ -113,11 +113,12 @@ export const generateSessionSummary = async (
   config: SessionConfig
 ): Promise<{ overallSummary: string, fillerWordAnalysis: string, mistakes: string[], overallScore: number }> => {
   const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || "" });
+  const transcript = questions.map(q => `P: ${q.question}\nR: ${q.originalResponse}`).join('\n\n');
   
   const prompt = `Genera un resumen ejecutivo del desempeño de la entrevista para el cargo de: ${config.role}.
   
   Basado en la siguiente transcripción de la sesión:
-  ${questions.map(q => `P: ${q.question}\nR: ${q.originalResponse}`).join('\n\n')}
+  ${transcript}
 
   Instrucciones:
   1. Analiza muletillas y fluidez.
