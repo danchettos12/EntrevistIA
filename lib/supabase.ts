@@ -7,8 +7,8 @@ const supabaseAnonKey = process.env.SUPABASE_ANON_KEY;
 const isValidUrl = (url: string | undefined): boolean => {
   if (!url || url === "" || url.includes("YOUR_") || url === "undefined") return false;
   try {
-    new URL(url);
-    return true;
+    const parsedUrl = new URL(url);
+    return parsedUrl.protocol === 'http:' || parsedUrl.protocol === 'https:';
   } catch {
     return false;
   }
@@ -31,7 +31,6 @@ const createMockClient = () => {
         };
         
         checkAuth();
-        // Listener simple para cambios en localStorage (opcional pero ayuda en multi-tab)
         window.addEventListener('storage', (e) => {
           if (e.key === 'entrevistia_mock_user') checkAuth();
         });
@@ -43,8 +42,6 @@ const createMockClient = () => {
         const user = users.find((u: any) => u.email === email && u.password === password);
         if (user) {
           localStorage.setItem('entrevistia_mock_user', JSON.stringify(user));
-          // Importante: No recargar aquí, dejar que el callback de onAuthStateChange maneje el flujo si es posible,
-          // o forzar un evento custom. Para simplicidad en este entorno, usamos un timeout breve y recarga controlada.
           setTimeout(() => window.location.reload(), 100);
           return { data: { user }, error: null };
         }

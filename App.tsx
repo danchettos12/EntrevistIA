@@ -74,15 +74,18 @@ const App: React.FC = () => {
     setView(AppView.LANDING);
   };
 
-  const handleFinishSession = async (record: Omit<SessionRecord, 'id'>) => {
-    const saved = await saveSession(record);
+  const handleFinishSession = async (record: SessionRecord) => {
+    // Para guardar, omitimos el ID temporal generado por el componente de entrevista
+    // si el servidor/mock genera su propio ID
+    const { id: _tmpId, ...sessionData } = record;
+    const saved = await saveSession(sessionData);
+    
     if (saved) {
       setSessions([saved, ...sessions]);
       setActiveSession(saved);
       setView(AppView.FEEDBACK);
     } else {
-      const fallbackRecord: SessionRecord = { ...record, id: Math.random().toString(36).substr(2, 9) };
-      setActiveSession(fallbackRecord);
+      setActiveSession(record);
       setView(AppView.FEEDBACK);
     }
   };
