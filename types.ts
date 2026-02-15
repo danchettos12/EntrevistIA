@@ -42,6 +42,13 @@ export interface QuestionFeedback {
   generalFeedback: string;
 }
 
+export interface CommunicationMetrics {
+  pacing: number;
+  vocabulary: number;
+  clarity: number;
+  confidence: number;
+}
+
 export interface SessionRecord {
   id: string;
   userId: string;
@@ -52,6 +59,8 @@ export interface SessionRecord {
   fillerWordAnalysis: string;
   mistakes: string[];
   questions: QuestionFeedback[];
+  communicationMetrics?: CommunicationMetrics;
+  improvementPlan?: string[];
 }
 
 export enum AppView {
