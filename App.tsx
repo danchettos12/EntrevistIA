@@ -74,14 +74,27 @@ const App: React.FC = () => {
   };
 
   const handleFinishSession = async (record: SessionRecord) => {
-    const saved = await saveSession(record);
-    if (saved) {
-      setSessions(prev => [saved, ...prev]);
-      setActiveSession(saved);
-    } else {
-      setActiveSession(record);
-    }
+    // 1. Establecer sesión activa primero para que el usuario vea el feedback rápido
+    setActiveSession(record);
     setView(AppView.FEEDBACK);
+
+    // 2. Intentar guardar en segundo plano
+    try {
+      const saved = await saveSession(record);
+      if (saved) {
+        setSessions(prev => {
+          // Evitar duplicados si ya estaba en el historial local
+          if (prev.some(s => s.id === saved.id)) return prev;
+          return [saved, ...prev];
+        });
+      } else {
+        // Si falla el servidor, lo guardamos al menos en la lista actual de la UI
+        setSessions(prev => [record, ...prev]);
+      }
+    } catch (e) {
+      console.error("Failed to save session to DB:", e);
+      setSessions(prev => [record, ...prev]);
+    }
   };
 
   const handleOpenDoc = (topic: DocumentationTopic) => {
