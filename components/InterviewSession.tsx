@@ -137,7 +137,11 @@ const InterviewSession: React.FC<InterviewSessionProps> = ({ config, userId, onF
 
     // Esperamos a que cualquier transcripción pendiente termine
     if (transcriptionPromiseRef.current) {
-      await transcriptionPromiseRef.current;
+      try {
+        await transcriptionPromiseRef.current;
+      } catch (e) {
+        console.warn("Error esperando transcripción final:", e);
+      }
     }
 
     try {
@@ -152,24 +156,57 @@ const InterviewSession: React.FC<InterviewSessionProps> = ({ config, userId, onF
         transcriptionPromiseRef.current = null;
         loadNextQuestion();
       } else {
-        const summary = await generateSessionSummary(updatedResults, config);
-        const record: SessionRecord = {
-          id: Math.random().toString(36).substr(2, 9),
-          userId,
-          timestamp: Date.now(),
-          config,
-          questions: updatedResults,
-          ...summary
-        };
-        onFinish(record);
+        // ES LA ÚLTIMA PREGUNTA
+        try {
+          const summary = await generateSessionSummary(updatedResults, config);
+          const record: SessionRecord = {
+            id: Math.random().toString(36).substr(2, 9),
+            userId,
+            timestamp: Date.now(),
+            config,
+            questions: updatedResults,
+            ...summary
+          };
+          onFinish(record);
+        } catch (summaryErr) {
+          console.error("Error generating summary, finishing anyway:", summaryErr);
+          // Fallback final para no dejar al usuario colgado
+          const fallbackRecord: SessionRecord = {
+            id: Math.random().toString(36).substr(2, 9),
+            userId,
+            timestamp: Date.now(),
+            config,
+            questions: updatedResults,
+            overallSummary: "La sesión ha concluido. Hubo un problema generando el resumen automático, pero puedes revisar tus respuestas individuales.",
+            fillerWordAnalysis: "No disponible.",
+            mistakes: ["No se pudo realizar el análisis de errores técnicos."],
+            overallScore: updatedResults.reduce((acc, r) => acc + r.starAnalysis.score, 0) / updatedResults.length
+          };
+          onFinish(fallbackRecord);
+        }
       }
     } catch (err) {
-      console.error("Error procesando respuesta:", err);
-      // Fallback simple para no bloquear la app
+      console.error("Error crítico en handleNext:", err);
+      // Si falla el análisis de la pregunta, pero aún quedan preguntas, seguimos.
+      // Si era la última, forzamos el fin con lo que tengamos.
       if (currentIdx + 1 < config.questionCount) {
          setCurrentIdx(currentIdx + 1);
          setResponse("");
          loadNextQuestion();
+      } else {
+         // Fallback de emergencia absoluto
+         const emergencyRecord: SessionRecord = {
+           id: Math.random().toString(36).substr(2, 9),
+           userId,
+           timestamp: Date.now(),
+           config,
+           questions: results,
+           overallSummary: "La sesión terminó inesperadamente debido a un error de red o de la IA.",
+           fillerWordAnalysis: "N/A",
+           mistakes: ["Error de procesamiento final."],
+           overallScore: 0
+         };
+         onFinish(emergencyRecord);
       }
     } finally {
       setProcessing(false);
@@ -187,9 +224,9 @@ const InterviewSession: React.FC<InterviewSessionProps> = ({ config, userId, onF
         </div>
         <div className="text-center space-y-2">
           <p className="text-white font-bold uppercase tracking-[0.3em] text-xs">
-            {processing ? 'Analizando Competencias...' : 'Sincronizando Entrevistador...'}
+            {processing ? 'Sincronizando con el Panel de Expertos...' : 'Sincronizando Entrevistador...'}
           </p>
-          <p className="text-slate-500 text-[10px] uppercase tracking-widest">Esto puede tardar unos segundos</p>
+          <p className="text-slate-500 text-[10px] uppercase tracking-widest">Analizando dimensiones STAR y métricas de asertividad</p>
         </div>
       </div>
     );

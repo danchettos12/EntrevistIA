@@ -39,8 +39,14 @@ const FEEDBACK_SCHEMA = {
   required: ['originalResponse', 'idealResponse', 'highlights', 'starAnalysis', 'toneScore', 'toneExplanation', 'assertivenessScore', 'assertivenessExplanation', 'generalFeedback']
 };
 
+const cleanJsonResponse = (text: string): string => {
+  // Elimina bloques de código markdown si existen
+  return text.replace(/```json/g, "").replace(/```/g, "").trim();
+};
+
 export const transcribeAudio = async (base64Audio: string, mimeType: string): Promise<string> => {
-  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || "" });
+  // Always use the correct initialization for GoogleGenAI with a named parameter.
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
   try {
     const response = await ai.models.generateContent({
       model: 'gemini-3-flash-preview',
@@ -68,7 +74,8 @@ export const transcribeAudio = async (base64Audio: string, mimeType: string): Pr
 };
 
 export const generateInterviewQuestion = async (config: SessionConfig, previousQuestions: string[] = []): Promise<string> => {
-  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || "" });
+  // Always use the correct initialization for GoogleGenAI with a named parameter.
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
   const prompt = `Actúa como un reclutador senior para el cargo: ${config.role}. 
   Rigor: ${config.pressure}/100. Enfoque Conductual: ${config.focus}/100.
   Preguntas anteriores: ${previousQuestions.join(', ') || 'ninguna'}.
@@ -90,7 +97,8 @@ export const analyzeQuestionResponse = async (
   userResponse: string,
   config: SessionConfig
 ): Promise<QuestionFeedback> => {
-  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || "" });
+  // Always use the correct initialization for GoogleGenAI with a named parameter.
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
   const prompt = `Analiza esta respuesta de entrevista en ESPAÑOL para el cargo de ${config.role}:
   Pregunta: "${question}"
   Respuesta del Candidato: "${userResponse}"
@@ -110,10 +118,29 @@ export const analyzeQuestionResponse = async (
       }
     });
 
-    return JSON.parse(response.text || '{}');
+    const jsonStr = cleanJsonResponse(response.text || '{}');
+    const feedback = JSON.parse(jsonStr);
+    // Fix: Include the 'question' property in the returned object to satisfy the QuestionFeedback interface.
+    return {
+      ...feedback,
+      question: question
+    };
   } catch (error) {
     console.error("Analysis error:", error);
-    throw error;
+    // Fallback object to prevent crashes.
+    // Fix: Add missing 'question' property to match QuestionFeedback type.
+    return {
+      question: question,
+      originalResponse: userResponse,
+      idealResponse: "No se pudo generar la optimización en este momento.",
+      highlights: [],
+      starAnalysis: { situation: "No detectado", task: "No detectado", action: "No detectado", result: "No detectado", score: 0 },
+      toneScore: 0,
+      toneExplanation: "Error de análisis",
+      assertivenessScore: 0,
+      assertivenessExplanation: "Error de análisis",
+      generalFeedback: "Hubo un problema procesando esta respuesta específica."
+    };
   }
 };
 
@@ -121,7 +148,8 @@ export const generateSessionSummary = async (
   questions: QuestionFeedback[],
   config: SessionConfig
 ): Promise<{ overallSummary: string, fillerWordAnalysis: string, mistakes: string[], overallScore: number }> => {
-  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || "" });
+  // Always use the correct initialization for GoogleGenAI with a named parameter.
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
   
   const prompt = `Genera un resumen ejecutivo del desempeño global de esta sesión de entrevista para el cargo de: ${config.role}.
   
@@ -152,14 +180,15 @@ export const generateSessionSummary = async (
       }
     });
 
-    return JSON.parse(response.text || '{}');
+    const jsonStr = cleanJsonResponse(response.text || '{}');
+    return JSON.parse(jsonStr);
   } catch (error) {
     console.error("Summary error:", error);
     return {
-      overallSummary: "Error generando el resumen ejecutivo.",
-      fillerWordAnalysis: "No se pudo realizar el análisis de fluidez.",
-      mistakes: ["Error de comunicación con el motor de IA."],
-      overallScore: 0
+      overallSummary: "La sesión finalizó, pero el motor de análisis experimentó una interrupción.",
+      fillerWordAnalysis: "Análisis de fluidez no disponible por error técnico.",
+      mistakes: ["No se pudieron identificar errores específicos debido a un problema de conexión."],
+      overallScore: questions.reduce((acc, q) => acc + q.starAnalysis.score, 0) / (questions.length || 1)
     };
   }
 };
