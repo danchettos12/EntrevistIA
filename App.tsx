@@ -72,11 +72,14 @@ const App: React.FC = () => {
   };
 
   const handleFinishSession = async (record: SessionRecord) => {
+    // Intentamos guardar en la base de datos/localstorage
     const saved = await saveSession(record);
     if (saved) {
-      setSessions([saved, ...sessions]);
+      // Si se guardó, usamos el registro con ID real y lo añadimos al historial
+      setSessions(prev => [saved, ...prev]);
       setActiveSession(saved);
     } else {
+      // Fallback si falla el guardado, pero mostramos el feedback de la sesión actual
       setActiveSession(record);
     }
     setView(AppView.FEEDBACK);

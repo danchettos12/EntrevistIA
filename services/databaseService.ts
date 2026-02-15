@@ -15,7 +15,9 @@ export const saveSession = async (session: Omit<SessionRecord, 'id'>): Promise<S
         overall_summary: session.overallSummary,
         filler_word_analysis: session.fillerWordAnalysis,
         mistakes: session.mistakes,
-        questions: session.questions
+        questions: session.questions,
+        communication_metrics: session.communicationMetrics,
+        improvement_plan: session.improvementPlan
       }])
       .select()
       .single();
@@ -23,17 +25,20 @@ export const saveSession = async (session: Omit<SessionRecord, 'id'>): Promise<S
     if (error) throw error;
 
     return {
-      ...data,
       id: data.id,
       userId: data.user_id,
+      timestamp: new Date(data.timestamp).getTime(),
+      config: data.config,
       overallScore: data.overall_score,
       overallSummary: data.overall_summary,
       fillerWordAnalysis: data.filler_word_analysis,
-      timestamp: new Date(data.timestamp).getTime()
+      mistakes: data.mistakes,
+      questions: data.questions,
+      communicationMetrics: data.communication_metrics,
+      improvementPlan: data.improvement_plan
     };
   } catch (err) {
     console.error("Error al guardar sesión:", err);
-    // Si falla por red en cliente real, guardamos un fallback
     return null;
   }
 };
@@ -59,7 +64,9 @@ export const getUserSessions = async (userId: string): Promise<SessionRecord[]> 
       overallSummary: s.overall_summary,
       fillerWordAnalysis: s.filler_word_analysis,
       mistakes: s.mistakes,
-      questions: s.questions
+      questions: s.questions,
+      communicationMetrics: s.communication_metrics,
+      improvementPlan: s.improvement_plan
     }));
   } catch (err) {
     console.error("Error al obtener sesiones:", err);
