@@ -21,16 +21,6 @@ const App: React.FC = () => {
   const [activeSession, setActiveSession] = useState<SessionRecord | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Detección de configuración de nube disponible
-  const isCloudConfigured = process.env.SUPABASE_URL && 
-                            process.env.SUPABASE_URL !== "" && 
-                            !process.env.SUPABASE_URL.includes("YOUR_") &&
-                            process.env.SUPABASE_ANON_KEY &&
-                            process.env.SUPABASE_ANON_KEY !== "undefined";
-  
-  const isForcedLocal = localStorage.getItem('entrevistia_force_local') === 'true';
-  const showSyncPrompt = isForcedLocal && isCloudConfigured;
-
   useEffect(() => {
     if (!supabase || !supabase.auth) {
       setIsLoading(false);
@@ -84,7 +74,6 @@ const App: React.FC = () => {
   };
 
   const handleFinishSession = async (record: SessionRecord) => {
-    // Clonamos el objeto omitiendo el ID para que Supabase/LocalStorage genere uno nuevo
     const sessionData = { ...record };
     delete (sessionData as any).id;
 
@@ -140,28 +129,6 @@ const App: React.FC = () => {
             </nav>
           </div>
         </header>
-      )}
-
-      {showSyncPrompt && view !== AppView.INTERVIEW && (
-        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[150] w-[90%] max-w-2xl animate-fadeIn">
-          <div className="bg-gradient-to-r from-blue-900/90 to-indigo-900/90 backdrop-blur-xl p-6 rounded-2xl border border-blue-400/30 shadow-2xl flex flex-col md:flex-row items-center justify-between gap-4">
-            <div className="flex items-center gap-4">
-              <div className="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center shadow-lg animate-pulse">
-                <i className="ph-bold ph-cloud-arrow-up text-white text-xl"></i>
-              </div>
-              <div className="text-left">
-                <h4 className="text-white font-bold text-sm tracking-tight">Sincronización en la Nube Disponible</h4>
-                <p className="text-blue-200 text-[10px] uppercase tracking-widest font-medium opacity-80">Detectamos credenciales de servidor. Actívelas para guardar sus sesiones permanentemente.</p>
-              </div>
-            </div>
-            <button 
-              onClick={() => setLocalMode(false)}
-              className="whitespace-nowrap px-6 py-3 bg-white text-blue-900 font-bold rounded-xl hover:bg-blue-50 transition-all shadow-lg uppercase text-[9px] tracking-[0.2em]"
-            >
-              Activar Modo Cloud
-            </button>
-          </div>
-        </div>
       )}
 
       <main className={`flex-1 ${user && view !== AppView.DOCUMENTATION ? 'pt-32' : 'pt-0'} pb-20 px-4 max-w-7xl mx-auto w-full`}>

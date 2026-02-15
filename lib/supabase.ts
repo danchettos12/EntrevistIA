@@ -4,8 +4,6 @@ import { createClient } from '@supabase/supabase-js';
 const supabaseUrl = process.env.SUPABASE_URL;
 const supabaseAnonKey = process.env.SUPABASE_ANON_KEY;
 
-const isExplicitLocal = localStorage.getItem('entrevistia_force_local') === 'true';
-
 const isValidUrl = (url: string | undefined): boolean => {
   if (!url || url === "" || url === "undefined" || url === "null" || url.includes("YOUR_")) return false;
   try {
@@ -114,11 +112,15 @@ const createInternalClient = () => {
 };
 
 let client: any = null;
+const isCloudConfigured = isValidUrl(supabaseUrl) && supabaseAnonKey && supabaseAnonKey !== "undefined";
 
-if (!isExplicitLocal && isValidUrl(supabaseUrl) && supabaseAnonKey && supabaseAnonKey !== "undefined") {
+if (isCloudConfigured) {
+  // Si hay credenciales válidas en el entorno, desactivamos automáticamente el modo local forzado
+  localStorage.removeItem('entrevistia_force_local');
   try {
-    client = createClient(supabaseUrl!, supabaseAnonKey);
-  } catch {
+    client = createClient(supabaseUrl!, supabaseAnonKey!);
+  } catch (e) {
+    console.error("Error al inicializar Supabase, recurriendo a modo local:", e);
     client = createInternalClient();
   }
 } else {
