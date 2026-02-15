@@ -41,25 +41,30 @@ const FEEDBACK_SCHEMA = {
 
 export const transcribeAudio = async (base64Audio: string, mimeType: string): Promise<string> => {
   const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || "" });
-  const response = await ai.models.generateContent({
-    model: 'gemini-3-flash-preview',
-    contents: [
-      {
-        parts: [
-          {
-            inlineData: {
-              mimeType: mimeType,
-              data: base64Audio
+  try {
+    const response = await ai.models.generateContent({
+      model: 'gemini-3-flash-preview',
+      contents: [
+        {
+          parts: [
+            {
+              inlineData: {
+                mimeType: mimeType,
+                data: base64Audio
+              }
+            },
+            {
+              text: "Transcribe exactamente lo que se dice en este audio de entrevista profesional en español. Solo devuelve el texto transcrito, nada más."
             }
-          },
-          {
-            text: "Transcribe exactamente lo que se dice en este audio de entrevista profesional en español. Solo devuelve el texto transcrito, nada más."
-          }
-        ]
-      }
-    ]
-  });
-  return response.text?.trim() || "";
+          ]
+        }
+      ]
+    });
+    return response.text?.trim() || "";
+  } catch (error) {
+    console.error("Error en transcripción:", error);
+    return "";
+  }
 };
 
 export const generateInterviewQuestion = async (config: SessionConfig, previousQuestions: string[] = []): Promise<string> => {
@@ -69,11 +74,16 @@ export const generateInterviewQuestion = async (config: SessionConfig, previousQ
   Preguntas ya realizadas para evitar repetición: ${previousQuestions.join(', ') || 'ninguna'}.
   Genera una pregunta desafiante en ESPAÑOL que requiera una respuesta estructurada bajo estándares corporativos. Solo devuelve la pregunta.`;
 
-  const response = await ai.models.generateContent({
-    model: 'gemini-3-flash-preview',
-    contents: prompt
-  });
-  return response.text || "Hubo un error al generar la pregunta de evaluación.";
+  try {
+    const response = await ai.models.generateContent({
+      model: 'gemini-3-flash-preview',
+      contents: prompt
+    });
+    return response.text || "Hubo un error al generar la pregunta de evaluación.";
+  } catch (error) {
+    console.error("Error generando pregunta:", error);
+    return "¿Podría describir un desafío profesional reciente y cómo lo superó?";
+  }
 };
 
 export const analyzeQuestionResponse = async (

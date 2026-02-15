@@ -5,7 +5,7 @@ const supabaseUrl = process.env.SUPABASE_URL;
 const supabaseAnonKey = process.env.SUPABASE_ANON_KEY;
 
 const isValidUrl = (url: string | undefined): boolean => {
-  if (!url || url === "" || url.includes("YOUR_") || url === "undefined" || url === "null") return false;
+  if (!url || url === "" || url === "undefined" || url === "null" || url.includes("YOUR_")) return false;
   try {
     const parsedUrl = new URL(url);
     return (parsedUrl.protocol === 'http:' || parsedUrl.protocol === 'https:') && parsedUrl.hostname !== '';
@@ -15,15 +15,14 @@ const isValidUrl = (url: string | undefined): boolean => {
 };
 
 /**
- * Cliente Interno de Respaldo (Silencioso)
- * Maneja la persistencia en localStorage sin emitir logs ni avisos.
+ * Cliente Interno de Respaldo para Modo Local (PWA-Ready)
  */
 const createInternalClient = () => {
   return {
     auth: {
       onAuthStateChange: (callback: any) => {
         const checkAuth = () => {
-          const savedUser = localStorage.getItem('app_persistence_u');
+          const savedUser = localStorage.getItem('entrevistia_user_session');
           if (savedUser) {
             const user = JSON.parse(savedUser);
             callback('SIGNED_IN', { user, session: { user } });
@@ -37,34 +36,34 @@ const createInternalClient = () => {
         return { data: { subscription: { unsubscribe: () => window.removeEventListener('storage', listener) } } };
       },
       signInWithPassword: async ({ email, password }: any) => {
-        const users = JSON.parse(localStorage.getItem('app_persistence_db_u') || '[]');
+        const users = JSON.parse(localStorage.getItem('entrevistia_db_users') || '[]');
         const user = users.find((u: any) => u.email === email && u.password === password);
         if (user) {
-          localStorage.setItem('app_persistence_u', JSON.stringify(user));
+          localStorage.setItem('entrevistia_user_session', JSON.stringify(user));
           window.dispatchEvent(new Event('storage'));
           return { data: { user }, error: null };
         }
-        return { data: null, error: { message: 'Credenciales no encontradas.' } };
+        return { data: null, error: { message: 'Credenciales inválidas en modo local.' } };
       },
       signUp: async ({ email, password, options }: any) => {
-        const users = JSON.parse(localStorage.getItem('app_persistence_db_u') || '[]');
+        const users = JSON.parse(localStorage.getItem('entrevistia_db_users') || '[]');
         if (users.find((u: any) => u.email === email)) {
-          return { data: null, error: { message: 'El correo ya está registrado.' } };
+          return { data: null, error: { message: 'Usuario ya existente en modo local.' } };
         }
         const newUser = { 
-          id: 'u_' + Math.random().toString(36).substr(2, 9), 
+          id: 'local_' + Math.random().toString(36).substr(2, 9), 
           email, 
           password,
           user_metadata: options?.data || {} 
         };
         users.push(newUser);
-        localStorage.setItem('app_persistence_db_u', JSON.stringify(users));
-        localStorage.setItem('app_persistence_u', JSON.stringify(newUser));
+        localStorage.setItem('entrevistia_db_users', JSON.stringify(users));
+        localStorage.setItem('entrevistia_user_session', JSON.stringify(newUser));
         window.dispatchEvent(new Event('storage'));
         return { data: { user: newUser }, error: null };
       },
       signOut: async () => {
-        localStorage.removeItem('app_persistence_u');
+        localStorage.removeItem('entrevistia_user_session');
         window.dispatchEvent(new Event('storage'));
         return { error: null };
       }
@@ -73,23 +72,27 @@ const createInternalClient = () => {
       select: () => ({
         eq: (col: string, val: any) => ({
           order: () => {
-            let data = JSON.parse(localStorage.getItem(`app_persistence_db_${table}`) || '[]');
+            let data = JSON.parse(localStorage.getItem(`entrevistia_db_${table}`) || '[]');
             if (col && val) data = data.filter((item: any) => item[col] === val);
             return Promise.resolve({ data, error: null });
           }
         }),
         order: () => {
-          const data = JSON.parse(localStorage.getItem(`app_persistence_db_${table}`) || '[]');
+          const data = JSON.parse(localStorage.getItem(`entrevistia_db_${table}`) || '[]');
           return Promise.resolve({ data, error: null });
         }
       }),
       insert: (rows: any[]) => ({
         select: () => ({
           single: () => {
-            const data = JSON.parse(localStorage.getItem(`app_persistence_db_${table}`) || '[]');
-            const newRow = { ...rows[0], id: 'r_' + Math.random().toString(36).substr(2, 9), timestamp: new Date().toISOString() };
-            data.push(newRow);
-            localStorage.setItem(`app_persistence_db_${table}`, JSON.stringify(data));
+            const data = JSON.parse(localStorage.getItem(`entrevistia_db_${table}`) || '[]');
+            const newRow = { 
+              ...rows[0], 
+              id: 'rec_' + Math.random().toString(36).substr(2, 9), 
+              timestamp: new Date().toISOString() 
+            };
+            data.unshift(newRow);
+            localStorage.setItem(`entrevistia_db_${table}`, JSON.stringify(data));
             return Promise.resolve({ data: newRow, error: null });
           }
         })
@@ -101,7 +104,7 @@ const createInternalClient = () => {
 
 let client: any = null;
 
-if (isValidUrl(supabaseUrl) && supabaseAnonKey) {
+if (isValidUrl(supabaseUrl) && supabaseAnonKey && supabaseAnonKey !== "undefined") {
   try {
     client = createClient(supabaseUrl!, supabaseAnonKey);
   } catch {
