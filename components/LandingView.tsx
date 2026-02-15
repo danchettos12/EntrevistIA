@@ -1,13 +1,13 @@
 
 import React from 'react';
-import { setLocalMode } from '../lib/supabase.ts';
 
 interface LandingViewProps {
   onGetStarted: () => void;
   onLogin: () => void;
+  onSkip: () => void;
 }
 
-const LandingView: React.FC<LandingViewProps> = ({ onGetStarted, onLogin }) => {
+const LandingView: React.FC<LandingViewProps> = ({ onGetStarted, onLogin, onSkip }) => {
   return (
     <div className="min-h-screen flex flex-col justify-center animate-fadeIn py-20 overflow-hidden">
       <section className="relative text-center space-y-12 px-4">
@@ -28,30 +28,27 @@ const LandingView: React.FC<LandingViewProps> = ({ onGetStarted, onLogin }) => {
         
         <div className="flex flex-col sm:flex-row items-center justify-center gap-6 pt-12">
           <button 
-            onClick={() => setLocalMode(true)} 
+            onClick={onSkip} 
             className="w-full sm:w-auto px-12 py-6 rounded-2xl bg-blue-600 text-white font-bold hover:bg-blue-500 hover:-translate-y-1 transition-all uppercase text-sm tracking-widest flex items-center justify-center gap-3 shadow-2xl shadow-blue-900/40"
           >
             <i className="ph-bold ph-lightning"></i>
-            Iniciar Prueba Rápida
+            Empezar Ahora
           </button>
           <button 
             onClick={onGetStarted} 
             className="w-full sm:w-auto px-12 py-6 rounded-2xl bg-white/5 border border-white/10 text-white font-bold hover:bg-white/10 transition-all uppercase text-sm tracking-widest"
           >
-            Crear Perfil Pro
+            Registrarse
           </button>
         </div>
         
-        <div className="pt-8 flex flex-col gap-2">
+        <div className="pt-8">
             <button 
               onClick={onLogin} 
               className="text-[10px] font-bold text-slate-500 hover:text-white uppercase tracking-[0.3em] transition-colors"
             >
-              ¿Ya eres miembro? Iniciar Sesión
+              ¿Ya tienes cuenta? Iniciar Sesión
             </button>
-            <p className="text-[9px] text-slate-600 font-medium uppercase tracking-widest">
-              Todas las sesiones se guardan localmente si no hay conexión disponible
-            </p>
         </div>
       </section>
     </div>

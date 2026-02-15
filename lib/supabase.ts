@@ -7,15 +7,14 @@ const supabaseAnonKey = process.env.SUPABASE_ANON_KEY;
 const isValidUrl = (url: string | undefined): boolean => {
   if (!url || url === "" || url === "undefined" || url === "null" || url.includes("YOUR_")) return false;
   try {
-    const parsedUrl = new URL(url);
-    return (parsedUrl.protocol === 'http:' || parsedUrl.protocol === 'https:') && parsedUrl.hostname !== '';
+    new URL(url);
+    return true;
   } catch {
     return false;
   }
 };
 
 const createInternalClient = () => {
-  // Se ha eliminado el console.warn como se solicitó
   return {
     auth: {
       onAuthStateChange: (callback: any) => {
@@ -25,44 +24,20 @@ const createInternalClient = () => {
             const user = JSON.parse(savedUser);
             callback('SIGNED_IN', { user, session: { user } });
           } else {
-            callback('SIGNED_OUT', null);
+            // Usuario invitado por defecto para que la app funcione siempre
+            const guest = { id: 'guest_local', email: 'invitado@entrevistia.pro', user_metadata: { full_name: 'Usuario Invitado' } };
+            localStorage.setItem('entrevistia_user_session', JSON.stringify(guest));
+            callback('SIGNED_IN', { user: guest, session: { user: guest } });
           }
         };
         checkAuth();
-        const listener = () => checkAuth();
-        window.addEventListener('storage', listener);
-        return { data: { subscription: { unsubscribe: () => window.removeEventListener('storage', listener) } } };
+        return { data: { subscription: { unsubscribe: () => {} } } };
       },
-      signInWithPassword: async ({ email, password }: any) => {
-        const users = JSON.parse(localStorage.getItem('entrevistia_db_users') || '[]');
-        const user = users.find((u: any) => u.email === email && u.password === password);
-        if (user) {
-          localStorage.setItem('entrevistia_user_session', JSON.stringify(user));
-          window.dispatchEvent(new Event('storage'));
-          return { data: { user }, error: null };
-        }
-        return { data: null, error: { message: 'Credenciales inválidas en modo local.' } };
-      },
-      signUp: async ({ email, password, options }: any) => {
-        const users = JSON.parse(localStorage.getItem('entrevistia_db_users') || '[]');
-        if (users.find((u: any) => u.email === email)) {
-          return { data: null, error: { message: 'Este correo ya está registrado localmente.' } };
-        }
-        const newUser = { 
-          id: 'local_' + Math.random().toString(36).substr(2, 9), 
-          email, 
-          password,
-          user_metadata: options?.data || {} 
-        };
-        users.push(newUser);
-        localStorage.setItem('entrevistia_db_users', JSON.stringify(users));
-        localStorage.setItem('entrevistia_user_session', JSON.stringify(newUser));
-        window.dispatchEvent(new Event('storage'));
-        return { data: { user: newUser }, error: null };
-      },
+      signInWithPassword: async () => ({ data: null, error: { message: 'Inicia sesión en la nube para sincronizar.' } }),
+      signUp: async () => ({ data: null, error: { message: 'Crea una cuenta en la nube para sincronizar.' } }),
       signOut: async () => {
         localStorage.removeItem('entrevistia_user_session');
-        window.dispatchEvent(new Event('storage'));
+        window.location.reload();
         return { error: null };
       }
     },
@@ -110,37 +85,6 @@ const createInternalClient = () => {
   };
 };
 
-let client: any = null;
-const isCloudConfigured = isValidUrl(supabaseUrl) && supabaseAnonKey && supabaseAnonKey !== "undefined";
-
-if (isCloudConfigured) {
-  localStorage.removeItem('entrevistia_force_local');
-  try {
-    client = createClient(supabaseUrl!, supabaseAnonKey!);
-  } catch (e) {
-    console.error("Error al inicializar Supabase, recurriendo a modo local:", e);
-    client = createInternalClient();
-  }
-} else {
-  client = createInternalClient();
-}
-
-export const supabase = client;
-
-export const setLocalMode = (enabled: boolean) => {
-  if (enabled) {
-    localStorage.setItem('entrevistia_force_local', 'true');
-    if (!localStorage.getItem('entrevistia_user_session')) {
-      const guestUser = {
-        id: 'guest_' + Math.random().toString(36).substr(2, 9),
-        email: 'invitado@entrevistia.local',
-        user_metadata: { full_name: 'Entrenador Invitado' }
-      };
-      localStorage.setItem('entrevistia_user_session', JSON.stringify(guestUser));
-    }
-  } else {
-    localStorage.removeItem('entrevistia_force_local');
-    localStorage.removeItem('entrevistia_user_session');
-  }
-  window.location.reload();
-};
+export const supabase = (isValidUrl(supabaseUrl) && supabaseAnonKey && supabaseAnonKey !== "undefined")
+  ? createClient(supabaseUrl!, supabaseAnonKey!)
+  : createInternalClient();
