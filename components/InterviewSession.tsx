@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { SessionConfig, QuestionFeedback, SessionRecord } from '../types.ts';
 import { generateInterviewQuestion, analyzeQuestionResponse, generateSessionSummary, transcribeAudio } from '../services/geminiService.ts';
@@ -63,12 +62,6 @@ const InterviewSession: React.FC<InterviewSessionProps> = ({ config, userId, onF
   const handleNext = async () => {
     if (processing) return;
     
-    // Si no hay respuesta y estamos en la última pregunta, manejamos el cierre diferente
-    if (!response.trim() && isRecording) {
-      stopRecording();
-      return;
-    }
-
     setProcessing(true);
     if (timerRef.current) clearInterval(timerRef.current);
     if (isRecording) stopRecording();
@@ -96,8 +89,12 @@ const InterviewSession: React.FC<InterviewSessionProps> = ({ config, userId, onF
       }
     } catch (err) {
       console.error("Error procesando respuesta:", err);
-      // Fallback simple si falla el análisis
-      setProcessing(false);
+      // Fallback en caso de error crítico
+      if (currentIdx + 1 < config.questionCount) {
+         setCurrentIdx(currentIdx + 1);
+         setResponse("");
+         loadNextQuestion();
+      }
     } finally {
       setProcessing(false);
     }
@@ -143,10 +140,13 @@ const InterviewSession: React.FC<InterviewSessionProps> = ({ config, userId, onF
       const reader = new FileReader();
       reader.readAsDataURL(blob);
       reader.onloadend = async () => {
-        const base64Audio = (reader.result as string).split(',')[1];
-        const transcription = await transcribeAudio(base64Audio, 'audio/webm');
-        if (transcription) {
-          setResponse(prev => prev + (prev ? " " : "") + transcription);
+        const result = reader.result as string;
+        if (result) {
+          const base64Audio = result.split(',')[1];
+          const transcription = await transcribeAudio(base64Audio, 'audio/webm');
+          if (transcription) {
+            setResponse(prev => prev + (prev ? " " : "") + transcription);
+          }
         }
       };
     } catch (err) {
@@ -204,6 +204,18 @@ const InterviewSession: React.FC<InterviewSessionProps> = ({ config, userId, onF
           placeholder="Responde verbalmente o escribe aquí tu respuesta..."
         />
         
+        {isRecording && (
+          <div className="absolute top-12 right-12 flex gap-1 items-end h-8">
+            {[1,2,3,4,5].map(i => (
+              <div 
+                key={i} 
+                className="w-1.5 bg-blue-500 rounded-full animate-bounce" 
+                style={{ height: `${Math.random() * 100}%`, animationDelay: `${i * 0.1}s` }}
+              ></div>
+            ))}
+          </div>
+        )}
+
         <div className="absolute bottom-8 right-8 flex items-center gap-6">
           {transcribing && (
             <div className="flex items-center gap-3 px-5 py-2 bg-blue-500/10 border border-blue-500/20 rounded-full animate-pulse shadow-lg">
