@@ -2,8 +2,7 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { SessionConfig, QuestionFeedback } from "../types.ts";
 
-// Inicialización siguiendo estrictamente las guías del SDK
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || "" });
+const getAI = () => new GoogleGenAI({ apiKey: process.env.API_KEY || "" });
 
 const FEEDBACK_SCHEMA = {
   type: Type.OBJECT,
@@ -43,6 +42,7 @@ const FEEDBACK_SCHEMA = {
 };
 
 export const transcribeAudio = async (base64Audio: string, mimeType: string): Promise<string> => {
+  const ai = getAI();
   const response = await ai.models.generateContent({
     model: 'gemini-3-flash-preview',
     contents: [
@@ -55,7 +55,7 @@ export const transcribeAudio = async (base64Audio: string, mimeType: string): Pr
             }
           },
           {
-            text: "Transcribe exactamente lo que se dice en este audio profesional. Solo devuelve el texto transcrito, nada más."
+            text: "Transcribe exactamente lo que se dice en este audio de entrevista profesional en español. Solo devuelve el texto transcrito, nada más."
           }
         ]
       }
@@ -65,10 +65,11 @@ export const transcribeAudio = async (base64Audio: string, mimeType: string): Pr
 };
 
 export const generateInterviewQuestion = async (config: SessionConfig, previousQuestions: string[] = []): Promise<string> => {
-  const prompt = `Actúa como un entrevistador de alto nivel para el puesto: ${config.role}. 
+  const ai = getAI();
+  const prompt = `Actúa como un entrevistador de Recursos Humanos de alto nivel para el puesto de: ${config.role}. 
   Rigor de la evaluación: ${config.pressure}/100. Enfoque técnico/conductual: ${config.focus}/100.
-  Preguntas ya realizadas para evitar repetición: ${previousQuestions.join(', ')}.
-  Genera una pregunta desafiante que requiera una respuesta estructurada bajo estándares corporativos.`;
+  Preguntas ya realizadas para evitar repetición: ${previousQuestions.join(', ') || 'ninguna'}.
+  Genera una pregunta desafiante en ESPAÑOL que requiera una respuesta estructurada bajo estándares corporativos. Solo devuelve la pregunta.`;
 
   const response = await ai.models.generateContent({
     model: 'gemini-3-flash-preview',
@@ -82,12 +83,17 @@ export const analyzeQuestionResponse = async (
   userResponse: string,
   config: SessionConfig
 ): Promise<QuestionFeedback> => {
-  const prompt = `Analiza detalladamente esta respuesta de entrevista bajo estándares profesionales:
+  const ai = getAI();
+  const prompt = `Analiza detalladamente esta respuesta de entrevista bajo estándares profesionales en ESPAÑOL:
   Pregunta: "${question}"
   Respuesta del Candidato: "${userResponse}"
   Cargo Objetivo: ${config.role}
   
-  Devuelve el análisis en formato JSON siguiendo el método STAR y proporcionando una retroalimentación técnica exhaustiva.`;
+  Instrucciones:
+  1. Identifica los componentes STAR (Situación, Tarea, Acción, Resultado).
+  2. Evalúa el tono y la asertividad.
+  3. Proporciona una "Respuesta Ideal" (Modo Espejo) que el candidato debería haber dado para sonar como un profesional senior.
+  4. Devuelve el análisis estrictamente en formato JSON.`;
 
   const response = await ai.models.generateContent({
     model: 'gemini-3-pro-preview',
@@ -98,20 +104,27 @@ export const analyzeQuestionResponse = async (
     }
   });
 
-  const data = JSON.parse(response.text || '{}');
-  return { ...data, question };
+  return JSON.parse(response.text || '{}');
 };
 
 export const generateSessionSummary = async (
   questions: QuestionFeedback[],
   config: SessionConfig
 ): Promise<{ overallSummary: string, fillerWordAnalysis: string, mistakes: string[], overallScore: number }> => {
+  const ai = getAI();
   const transcript = questions.map(q => `Pregunta: ${q.question}\nRespuesta: ${q.originalResponse}`).join('\n\n');
   
-  const prompt = `Actúa como un Consultor de Selección Senior. Analiza el rendimiento global de la sesión de práctica:
+  const prompt = `Actúa como un Consultor de Selección Senior. Analiza el rendimiento global de esta sesión de práctica en ESPAÑOL:
   ${transcript}
   Contexto del Cargo: ${config.role}.
-  Identifica vicios de lenguaje, omisiones críticas en el método STAR y asigna una calificación de competencia global del 0 al 100.`;
+  
+  Tareas:
+  1. Redacta un resumen ejecutivo del desempeño.
+  2. Analiza el uso de muletillas y fluidez verbal.
+  3. Identifica 3 errores críticos cometidos.
+  4. Asigna una calificación global de competencia (0-100).
+  
+  Devuelve el resultado estrictamente en formato JSON.`;
 
   const response = await ai.models.generateContent({
     model: 'gemini-3-pro-preview',

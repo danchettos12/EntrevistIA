@@ -4,20 +4,38 @@ import { createClient } from '@supabase/supabase-js';
 const supabaseUrl = process.env.SUPABASE_URL;
 const supabaseAnonKey = process.env.SUPABASE_ANON_KEY;
 
-// Mock del cliente para permitir el uso de la app sin configuración de servidor
+const isValidUrl = (url: string | undefined): boolean => {
+  if (!url || url === "" || url.includes("YOUR_") || url === "undefined") return false;
+  try {
+    new URL(url);
+    return true;
+  } catch {
+    return false;
+  }
+};
+
 const createMockClient = () => {
-  console.warn("MODO DEMO ACTIVO: Utilizando almacenamiento local en lugar de Supabase.");
+  console.warn("MODO DEMO ACTIVO: Utilizando almacenamiento local.");
   
   return {
     auth: {
       onAuthStateChange: (callback: any) => {
-        const savedUser = localStorage.getItem('entrevistia_mock_user');
-        // Importante: Simular el comportamiento de Supabase que dispara el evento inmediatamente
-        if (savedUser) {
-          setTimeout(() => callback('SIGNED_IN', { user: JSON.parse(savedUser) }), 50);
-        } else {
-          setTimeout(() => callback('SIGNED_OUT', null), 50);
-        }
+        const checkAuth = () => {
+          const savedUser = localStorage.getItem('entrevistia_mock_user');
+          if (savedUser) {
+            const user = JSON.parse(savedUser);
+            callback('SIGNED_IN', { user, session: { user } });
+          } else {
+            callback('SIGNED_OUT', null);
+          }
+        };
+        
+        checkAuth();
+        // Listener simple para cambios en localStorage (opcional pero ayuda en multi-tab)
+        window.addEventListener('storage', (e) => {
+          if (e.key === 'entrevistia_mock_user') checkAuth();
+        });
+
         return { data: { subscription: { unsubscribe: () => {} } } };
       },
       signInWithPassword: async ({ email, password }: any) => {
@@ -25,9 +43,9 @@ const createMockClient = () => {
         const user = users.find((u: any) => u.email === email && u.password === password);
         if (user) {
           localStorage.setItem('entrevistia_mock_user', JSON.stringify(user));
-          // En lugar de recargar, podrías dejar que el estado fluya, 
-          // pero para el mock la recarga asegura coherencia.
-          window.location.reload(); 
+          // Importante: No recargar aquí, dejar que el callback de onAuthStateChange maneje el flujo si es posible,
+          // o forzar un evento custom. Para simplicidad en este entorno, usamos un timeout breve y recarga controlada.
+          setTimeout(() => window.location.reload(), 100);
           return { data: { user }, error: null };
         }
         return { data: null, error: { message: 'Credenciales inválidas en modo local.' } };
@@ -46,23 +64,30 @@ const createMockClient = () => {
         users.push(newUser);
         localStorage.setItem('entrevistia_mock_users', JSON.stringify(users));
         localStorage.setItem('entrevistia_mock_user', JSON.stringify(newUser));
-        window.location.reload();
+        setTimeout(() => window.location.reload(), 100);
         return { data: { user: newUser }, error: null };
       },
       signOut: async () => {
         localStorage.removeItem('entrevistia_mock_user');
-        window.location.reload();
+        setTimeout(() => window.location.reload(), 100);
         return { error: null };
       }
     },
     from: (table: string) => ({
-      select: () => ({
-        eq: () => ({
-          order: () => {
-            const data = JSON.parse(localStorage.getItem(`entrevistia_mock_${table}`) || '[]');
-            return { data, error: null };
+      select: (columns: string = '*') => ({
+        eq: (col: string, val: any) => ({
+          order: (colOrder: string, options: any) => {
+            let data = JSON.parse(localStorage.getItem(`entrevistia_mock_${table}`) || '[]');
+            if (col && val) {
+              data = data.filter((item: any) => item[col] === val);
+            }
+            return Promise.resolve({ data, error: null });
           }
-        })
+        }),
+        order: (colOrder: string, options: any) => {
+            const data = JSON.parse(localStorage.getItem(`entrevistia_mock_${table}`) || '[]');
+            return Promise.resolve({ data, error: null });
+        }
       }),
       insert: (rows: any[]) => ({
         select: () => ({
@@ -75,7 +100,7 @@ const createMockClient = () => {
             };
             data.push(newRow);
             localStorage.setItem(`entrevistia_mock_${table}`, JSON.stringify(data));
-            return { data: newRow, error: null };
+            return Promise.resolve({ data: newRow, error: null });
           }
         })
       })
@@ -86,11 +111,10 @@ const createMockClient = () => {
 
 let supabaseClient: any = null;
 
-if (supabaseUrl && supabaseAnonKey && supabaseUrl !== "" && supabaseAnonKey !== "") {
+if (isValidUrl(supabaseUrl) && supabaseAnonKey && supabaseAnonKey !== "" && supabaseAnonKey !== "undefined") {
   try {
-    supabaseClient = createClient(supabaseUrl, supabaseAnonKey);
+    supabaseClient = createClient(supabaseUrl!, supabaseAnonKey);
   } catch (err) {
-    console.error("Error al crear el cliente de Supabase, activando Mock...", err);
     supabaseClient = createMockClient();
   }
 } else {
