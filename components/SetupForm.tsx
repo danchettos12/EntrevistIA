@@ -43,7 +43,7 @@ const SetupForm: React.FC<SetupFormProps> = ({ initialRole, onStart, onBack }) =
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
           <div className="space-y-4">
             <div className="flex justify-between items-center">
-              <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Número de Reactivos</label>
+              <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Número de Preguntas</label>
               <span className="text-[10px] font-bold px-2 py-0.5 bg-blue-500/10 rounded text-blue-400">
                 {config.questionCount} ítems
               </span>
@@ -92,7 +92,7 @@ const SetupForm: React.FC<SetupFormProps> = ({ initialRole, onStart, onBack }) =
           <div className="space-y-4">
             <div className="flex justify-between items-center">
               <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Enfoque de Análisis</label>
-              <span className="text-[10px] font-bold text-emerald-400">{config.focus}% Técnico</span>
+              <span className="text-[10px] font-bold text-emerald-400">{config.focus}% Conductual</span>
             </div>
             <input 
               type="range" 
@@ -115,7 +115,7 @@ const SetupForm: React.FC<SetupFormProps> = ({ initialRole, onStart, onBack }) =
             onClick={() => onStart(config)}
             className="flex-[2] px-6 py-4 rounded-xl bg-blue-600 text-white font-bold hover:bg-blue-500 shadow-xl transition-all uppercase text-[10px] tracking-widest"
           >
-            Iniciar Sesión Profesional
+            Iniciar Sesión
           </button>
         </div>
       </div>

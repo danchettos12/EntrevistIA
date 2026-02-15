@@ -33,7 +33,6 @@ const Dashboard: React.FC<DashboardProps> = ({ user, sessions, onStart, onViewSe
 
   return (
     <div className="space-y-8 animate-fadeIn max-w-7xl mx-auto pb-20">
-      {/* Perfil del Usuario y Cabecera de Estado */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         <div className="lg:col-span-5 glass p-8 rounded-3xl border-l-4 border-blue-600 flex items-center gap-6">
           <div className="w-20 h-20 rounded-full bg-slate-800 border border-white/10 flex items-center justify-center text-2xl font-light text-white tracking-widest overflow-hidden shadow-inner">

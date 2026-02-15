@@ -2,8 +2,6 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { SessionConfig, QuestionFeedback } from "../types.ts";
 
-const getAI = () => new GoogleGenAI({ apiKey: process.env.API_KEY || "" });
-
 const FEEDBACK_SCHEMA = {
   type: Type.OBJECT,
   properties: {
@@ -42,7 +40,7 @@ const FEEDBACK_SCHEMA = {
 };
 
 export const transcribeAudio = async (base64Audio: string, mimeType: string): Promise<string> => {
-  const ai = getAI();
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || "" });
   const response = await ai.models.generateContent({
     model: 'gemini-3-flash-preview',
     contents: [
@@ -65,7 +63,7 @@ export const transcribeAudio = async (base64Audio: string, mimeType: string): Pr
 };
 
 export const generateInterviewQuestion = async (config: SessionConfig, previousQuestions: string[] = []): Promise<string> => {
-  const ai = getAI();
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || "" });
   const prompt = `Actúa como un entrevistador de Recursos Humanos de alto nivel para el puesto de: ${config.role}. 
   Rigor de la evaluación: ${config.pressure}/100. Enfoque técnico/conductual: ${config.focus}/100.
   Preguntas ya realizadas para evitar repetición: ${previousQuestions.join(', ') || 'ninguna'}.
@@ -83,7 +81,7 @@ export const analyzeQuestionResponse = async (
   userResponse: string,
   config: SessionConfig
 ): Promise<QuestionFeedback> => {
-  const ai = getAI();
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || "" });
   const prompt = `Analiza detalladamente esta respuesta de entrevista bajo estándares profesionales en ESPAÑOL:
   Pregunta: "${question}"
   Respuesta del Candidato: "${userResponse}"
@@ -111,7 +109,7 @@ export const generateSessionSummary = async (
   questions: QuestionFeedback[],
   config: SessionConfig
 ): Promise<{ overallSummary: string, fillerWordAnalysis: string, mistakes: string[], overallScore: number }> => {
-  const ai = getAI();
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || "" });
   const transcript = questions.map(q => `Pregunta: ${q.question}\nRespuesta: ${q.originalResponse}`).join('\n\n');
   
   const prompt = `Actúa como un Consultor de Selección Senior. Analiza el rendimiento global de esta sesión de práctica en ESPAÑOL:

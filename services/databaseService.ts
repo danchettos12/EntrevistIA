@@ -3,10 +3,7 @@ import { supabase } from '../lib/supabase.ts';
 import { SessionRecord } from '../types.ts';
 
 export const saveSession = async (session: Omit<SessionRecord, 'id'>): Promise<SessionRecord | null> => {
-  if (!supabase) {
-    console.error("Cliente de Supabase no inicializado.");
-    return null;
-  }
+  if (!supabase) return null;
 
   const { data, error } = await supabase
     .from('sessions')
@@ -23,7 +20,7 @@ export const saveSession = async (session: Omit<SessionRecord, 'id'>): Promise<S
     .single();
 
   if (error) {
-    console.error("Error al guardar la sesión en Supabase:", error);
+    console.error("Error al guardar la sesión:", error);
     return null;
   }
 
@@ -38,10 +35,7 @@ export const saveSession = async (session: Omit<SessionRecord, 'id'>): Promise<S
 };
 
 export const getUserSessions = async (userId: string): Promise<SessionRecord[]> => {
-  if (!supabase) {
-    console.error("Cliente de Supabase no inicializado.");
-    return [];
-  }
+  if (!supabase) return [];
 
   const { data, error } = await supabase
     .from('sessions')
@@ -64,7 +58,6 @@ export const getUserSessions = async (userId: string): Promise<SessionRecord[]> 
     filler_word_analysis: s.filler_word_analysis,
     mistakes: s.mistakes,
     questions: s.questions,
-    // Adaptación de nombres de propiedades de BD a TS
     overallSummary: s.overall_summary,
     fillerWordAnalysis: s.filler_word_analysis
   }));

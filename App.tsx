@@ -48,8 +48,7 @@ const App: React.FC = () => {
       setIsLoading(false);
     });
 
-    const timer = setTimeout(() => setIsLoading(false), 3000);
-
+    const timer = setTimeout(() => setIsLoading(false), 2000);
     return () => {
       subscription.unsubscribe();
       clearTimeout(timer);
@@ -75,8 +74,6 @@ const App: React.FC = () => {
   };
 
   const handleFinishSession = async (record: SessionRecord) => {
-    // Para guardar, omitimos el ID temporal generado por el componente de entrevista
-    // si el servidor/mock genera su propio ID
     const { id: _tmpId, ...sessionData } = record;
     const saved = await saveSession(sessionData);
     
@@ -93,11 +90,6 @@ const App: React.FC = () => {
   const handleViewSession = (record: SessionRecord) => {
     setActiveSession(record);
     setView(AppView.FEEDBACK);
-  };
-
-  const openAuth = (mode: 'login' | 'register') => {
-    setAuthMode(mode);
-    setView(AppView.AUTH);
   };
 
   if (isLoading) {
@@ -142,7 +134,7 @@ const App: React.FC = () => {
         </header>
       )}
       <main className={`flex-1 ${user && view !== AppView.DOCUMENTATION ? 'pt-32' : 'pt-0'} pb-20 px-4 max-w-7xl mx-auto w-full`}>
-        {view === AppView.LANDING && <LandingView onGetStarted={() => openAuth('register')} onLogin={() => openAuth('login')} />}
+        {view === AppView.LANDING && <LandingView onGetStarted={() => { setAuthMode('register'); setView(AppView.AUTH); }} onLogin={() => { setAuthMode('login'); setView(AppView.AUTH); }} />}
         {view === AppView.AUTH && <AuthView initialMode={authMode} onBack={() => setView(AppView.LANDING)} />}
         {view === AppView.DASHBOARD && user && <Dashboard user={user} sessions={sessions} onStart={() => setView(AppView.SETUP)} onViewSession={handleViewSession} />}
         {view === AppView.SETUP && <SetupForm initialRole={user?.preferredRole} onStart={(c) => { setCurrentConfig(c); setView(AppView.INTERVIEW); }} onBack={() => setView(AppView.DASHBOARD)} />}
