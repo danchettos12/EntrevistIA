@@ -22,7 +22,7 @@ const App: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event: any, session: any) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event: string, session: any) => {
       if (session?.user) {
         const loggedUser: User = {
           id: session.user.id,
@@ -32,9 +32,24 @@ const App: React.FC = () => {
         };
         setUser(loggedUser);
         fetchSessions(session.user.id);
+        
+        // Redirigir al Dashboard si estaba en login o landing
+        setView(prev => {
+          if (prev === AppView.AUTH || prev === AppView.LANDING) {
+            return AppView.DASHBOARD;
+          }
+          return prev;
+        });
       } else {
         setUser(null);
         setSessions([]);
+        // Si no hay usuario y no estamos en landing/auth, ir a landing
+        setView(prev => {
+          if (prev !== AppView.LANDING && prev !== AppView.AUTH) {
+            return AppView.LANDING;
+          }
+          return prev;
+        });
       }
       setIsLoading(false);
     });
@@ -52,8 +67,10 @@ const App: React.FC = () => {
   };
 
   const handleLogout = async () => {
+    setIsLoading(true);
     await supabase.auth.signOut();
     setView(AppView.LANDING);
+    setIsLoading(false);
   };
 
   const handleFinishSession = async (record: SessionRecord) => {
@@ -78,9 +95,12 @@ const App: React.FC = () => {
     );
   }
 
+  // Fallback de seguridad: si no hay usuario y no estamos en vistas públicas, forzar Landing
+  const safeView = (!user && view !== AppView.LANDING && view !== AppView.AUTH) ? AppView.LANDING : view;
+
   return (
-    <div className={`min-h-screen flex flex-col ${view === AppView.LANDING ? 'mesh-bg' : 'dashboard-grid'}`}>
-      {user && view !== AppView.LANDING && view !== AppView.AUTH && (
+    <div className={`min-h-screen flex flex-col ${safeView === AppView.LANDING ? 'mesh-bg' : 'dashboard-grid'}`}>
+      {user && safeView !== AppView.LANDING && safeView !== AppView.AUTH && (
         <header className="fixed top-6 left-1/2 -translate-x-1/2 z-[100] w-[95%] max-w-7xl">
           <div className="glass px-6 py-3 rounded-xl flex items-center justify-between shadow-2xl">
             <div className="flex items-center gap-3 cursor-pointer" onClick={() => setView(AppView.DASHBOARD)}>
@@ -90,21 +110,40 @@ const App: React.FC = () => {
               <span className="text-lg font-bold tracking-tighter text-white uppercase">EntrevistIA</span>
             </div>
             <nav className="flex gap-6 items-center">
-              <button onClick={() => setView(AppView.DASHBOARD)} className="text-[10px] font-bold uppercase tracking-widest text-slate-400 hover:text-white">Panel</button>
-              <button onClick={handleLogout} className="text-[10px] font-bold text-slate-500 uppercase tracking-widest hover:text-red-400">Salir</button>
+              <button onClick={() => setView(AppView.DASHBOARD)} className="text-[10px] font-bold uppercase tracking-widest text-slate-400 hover:text-white transition-colors">Panel</button>
+              <button onClick={handleLogout} className="text-[10px] font-bold text-slate-500 uppercase tracking-widest hover:text-red-400 transition-colors">Salir</button>
             </nav>
           </div>
         </header>
       )}
 
-      <main className={`flex-1 ${user && view !== AppView.LANDING ? 'pt-32' : ''} px-4 max-w-7xl mx-auto w-full`}>
-        {view === AppView.LANDING && <LandingView onGetStarted={() => { setAuthMode('register'); setView(AppView.AUTH); }} onLogin={() => { setAuthMode('login'); setView(AppView.AUTH); }} onSkip={() => setView(AppView.DASHBOARD)} />}
-        {view === AppView.AUTH && <AuthView initialMode={authMode} onBack={() => setView(AppView.LANDING)} />}
-        {view === AppView.DASHBOARD && user && <Dashboard user={user} sessions={sessions} onStart={() => setView(AppView.SETUP)} onViewSession={(s) => { setActiveSession(s); setView(AppView.FEEDBACK); }} />}
-        {view === AppView.SETUP && <SetupForm initialRole={user?.preferredRole} onStart={(c) => { setCurrentConfig(c); setView(AppView.INTERVIEW); }} onBack={() => setView(AppView.DASHBOARD)} />}
-        {view === AppView.INTERVIEW && user && <InterviewSession config={currentConfig} userId={user.id} onFinish={handleFinishSession} onCancel={() => setView(AppView.DASHBOARD)} />}
-        {view === AppView.FEEDBACK && activeSession && <FeedbackView session={activeSession} onClose={() => setView(AppView.DASHBOARD)} />}
-        {view === AppView.DOCUMENTATION && <DocumentationView onBack={() => setView(AppView.DASHBOARD)} />}
+      <main className={`flex-1 ${user && safeView !== AppView.LANDING ? 'pt-32' : ''} px-4 max-w-7xl mx-auto w-full`}>
+        {safeView === AppView.LANDING && (
+          <LandingView 
+            onGetStarted={() => { setAuthMode('register'); setView(AppView.AUTH); }} 
+            onLogin={() => { setAuthMode('login'); setView(AppView.AUTH); }} 
+            onSkip={() => { setAuthMode('login'); setView(AppView.AUTH); }} // Forzamos login si intentan saltar sin cuenta
+          />
+        )}
+        
+        {safeView === AppView.AUTH && <AuthView initialMode={authMode} onBack={() => setView(AppView.LANDING)} />}
+        
+        {safeView === AppView.DASHBOARD && user && (
+          <Dashboard 
+            user={user} 
+            sessions={sessions} 
+            onStart={() => setView(AppView.SETUP)} 
+            onViewSession={(s) => { setActiveSession(s); setView(AppView.FEEDBACK); }} 
+          />
+        )}
+        
+        {safeView === AppView.SETUP && <SetupForm initialRole={user?.preferredRole} onStart={(c) => { setCurrentConfig(c); setView(AppView.INTERVIEW); }} onBack={() => setView(AppView.DASHBOARD)} />}
+        
+        {safeView === AppView.INTERVIEW && user && <InterviewSession config={currentConfig} userId={user.id} onFinish={handleFinishSession} onCancel={() => setView(AppView.DASHBOARD)} />}
+        
+        {safeView === AppView.FEEDBACK && activeSession && <FeedbackView session={activeSession} onClose={() => setView(AppView.DASHBOARD)} />}
+        
+        {safeView === AppView.DOCUMENTATION && <DocumentationView onBack={() => setView(AppView.DASHBOARD)} />}
       </main>
     </div>
   );

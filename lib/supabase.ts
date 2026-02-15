@@ -15,29 +15,51 @@ const isValidUrl = (url: string | undefined): boolean => {
 };
 
 const createInternalClient = () => {
+  const listeners: any[] = [];
+  
+  const notify = (event: string, session: any) => {
+    listeners.forEach(cb => cb(event, session));
+  };
+
   return {
     auth: {
       onAuthStateChange: (callback: any) => {
-        const checkAuth = () => {
-          const savedUser = localStorage.getItem('entrevistia_user_session');
-          if (savedUser) {
-            const user = JSON.parse(savedUser);
-            callback('SIGNED_IN', { user, session: { user } });
-          } else {
-            // Usuario invitado por defecto para que la app funcione siempre
-            const guest = { id: 'guest_local', email: 'invitado@entrevistia.pro', user_metadata: { full_name: 'Usuario Invitado' } };
-            localStorage.setItem('entrevistia_user_session', JSON.stringify(guest));
-            callback('SIGNED_IN', { user: guest, session: { user: guest } });
-          }
-        };
-        checkAuth();
-        return { data: { subscription: { unsubscribe: () => {} } } };
+        listeners.push(callback);
+        const savedUser = localStorage.getItem('entrevistia_user_session');
+        if (savedUser) {
+          const user = JSON.parse(savedUser);
+          callback('INITIAL_SESSION', { user, session: { user } });
+        } else {
+          callback('INITIAL_SESSION', { user: null, session: null });
+        }
+        return { data: { subscription: { unsubscribe: () => {
+          const idx = listeners.indexOf(callback);
+          if (idx > -1) listeners.splice(idx, 1);
+        } } } };
       },
-      signInWithPassword: async () => ({ data: null, error: { message: 'Inicia sesión en la nube para sincronizar.' } }),
-      signUp: async () => ({ data: null, error: { message: 'Crea una cuenta en la nube para sincronizar.' } }),
+      signInWithPassword: async ({ email }: { email: string }) => {
+        const user = { 
+          id: 'user_local_' + Math.random().toString(36).substr(2, 9), 
+          email, 
+          user_metadata: { full_name: email.split('@')[0] } 
+        };
+        localStorage.setItem('entrevistia_user_session', JSON.stringify(user));
+        notify('SIGNED_IN', { user, session: { user } });
+        return { data: { user }, error: null };
+      },
+      signUp: async ({ email, options }: { email: string, options?: any }) => {
+        const user = { 
+          id: 'user_local_' + Math.random().toString(36).substr(2, 9), 
+          email, 
+          user_metadata: { full_name: options?.data?.full_name || email.split('@')[0] } 
+        };
+        localStorage.setItem('entrevistia_user_session', JSON.stringify(user));
+        notify('SIGNED_UP', { user, session: { user } });
+        return { data: { user }, error: null };
+      },
       signOut: async () => {
         localStorage.removeItem('entrevistia_user_session');
-        window.location.reload();
+        notify('SIGNED_OUT', null);
         return { error: null };
       }
     },
