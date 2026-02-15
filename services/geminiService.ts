@@ -17,6 +17,9 @@ const FALLBACK_QUESTIONS = [
 ];
 
 const cleanJsonResponse = (text: string): string => {
+  // Extraer el primer objeto JSON válido encontrado en el texto
+  const match = text.match(/\{[\s\S]*\}/);
+  if (match) return match[0];
   return text.replace(/```json/g, "").replace(/```/g, "").trim();
 };
 
@@ -35,14 +38,14 @@ export const generateInterviewQuestion = async (config: SessionConfig, previousQ
 
   try {
     const ai = new GoogleGenAI({ apiKey });
-    const prompt = `Actúa como un reclutador de élite de una empresa Fortune 500. Para el rol de ${config.role}, genera UNA pregunta conductual de alta complejidad técnica y emocional en español. Evita estas preguntas: ${previousQuestions.join(', ')}. Solo entrega el texto de la pregunta.`;
+    const prompt = `Actúa como un reclutador de élite de una empresa Fortune 500. Para el rol de ${config.role}, genera UNA pregunta conductual de alta complejidad técnica y emocional en español. El nivel de presión es ${config.pressure}/100. Evita estas preguntas: ${previousQuestions.join(', ')}. Solo entrega el texto de la pregunta.`;
     
     const apiCall = ai.models.generateContent({
       model: 'gemini-3-flash-preview',
       contents: prompt
     }).then(res => res.text?.trim() || fallback);
 
-    return await withTimeout(apiCall, 8000, fallback);
+    return await withTimeout(apiCall, 10000, fallback);
   } catch (error) {
     console.error("Gemini Error (Question):", error);
     return fallback;
@@ -60,25 +63,41 @@ export const analyzeQuestionResponse = async (
     originalResponse: userResponse,
     idealResponse: userResponse,
     highlights: [],
-    starAnalysis: { situation: "No analizado", task: "No analizado", action: "No analizado", result: "No analizado", score: 0 },
-    toneScore: 0, toneExplanation: "Análisis no disponible", assertivenessScore: 0, assertivenessExplanation: "Análisis no disponible",
-    generalFeedback: "Hubo un problema al procesar el análisis detallado."
+    starAnalysis: { 
+      situation: "Faltante o no detectado", 
+      task: "Faltante o no detectado", 
+      action: "Faltante o no detectado", 
+      result: "Faltante o no detectado", 
+      score: 0 
+    },
+    toneScore: 0, 
+    toneExplanation: "Análisis no disponible", 
+    assertivenessScore: 0, 
+    assertivenessExplanation: "Análisis no disponible",
+    generalFeedback: "La respuesta fue demasiado breve o el servicio de análisis no respondió a tiempo."
   };
 
-  if (!apiKey || userResponse.length < 5) return emptyFeedback;
+  if (!apiKey) return emptyFeedback;
+  if (userResponse.trim().length < 10) {
+    return {
+      ...emptyFeedback,
+      generalFeedback: "Respuesta demasiado corta para un análisis STAR riguroso. Intenta expandir tu contexto."
+    };
+  }
 
   try {
     const ai = new GoogleGenAI({ apiKey });
-    const prompt = `Actúa como un Coach de Carreras Senior EXTREMADAMENTE ESTRICTO. Analiza esta respuesta de entrevista para el puesto de ${config.role}.
+    const prompt = `Actúa como un Coach de Carreras Senior EXTREMADAMENTE RIGUROSO. Analiza esta respuesta de entrevista para el puesto de ${config.role} usando el método STAR.
     
 Pregunta: ${question}
 Respuesta: ${userResponse}
 
-Instrucciones:
-1. Sé implacable con el método STAR. Si falta el resultado con métricas, penaliza fuertemente.
-2. Identifica muletillas y falta de seguridad.
-3. Propón una 'idealResponse' que suene como un directivo C-Level.
-4. Evalúa con rigor técnico.`;
+Instrucciones Críticas:
+1. Divide la respuesta en Situación, Tarea, Acción y Resultado. Si un componente falta, escribe explícitamente "No detectado en la respuesta".
+2. Sé implacable. Si el Resultado no tiene métricas o impactos claros, penaliza el score.
+3. Genera una 'idealResponse' que sea un ejemplo de nivel C-Suite (CEO/CTO/VP) para esta misma pregunta.
+4. Proporciona feedback directo y accionable.
+5. Los puntajes son de 0 a 100.`;
     
     const apiCall = ai.models.generateContent({
       model: 'gemini-3-pro-preview',
@@ -112,11 +131,16 @@ Instrucciones:
     }).then(res => {
       const text = res.text;
       if (!text) throw new Error("No response text");
-      const data = JSON.parse(cleanJsonResponse(text));
-      return { ...emptyFeedback, ...data };
+      const cleaned = cleanJsonResponse(text);
+      const data = JSON.parse(cleaned);
+      return { 
+        ...emptyFeedback, 
+        ...data,
+        originalResponse: userResponse // Asegurar que mantenemos la original
+      };
     });
 
-    return await withTimeout(apiCall, 18000, emptyFeedback);
+    return await withTimeout(apiCall, 25000, emptyFeedback);
   } catch (error) {
     console.error("Gemini Error (Analysis):", error);
     return emptyFeedback;
@@ -128,12 +152,12 @@ export const generateSessionSummary = async (
   config: SessionConfig
 ): Promise<{ overallSummary: string, fillerWordAnalysis: string, mistakes: string[], overallScore: number, communicationMetrics: any, improvementPlan: string[] }> => {
   const fallback = {
-    overallSummary: "Análisis técnico básico completado. Por favor, revisa el detalle por pregunta.",
-    fillerWordAnalysis: "El análisis de muletillas no se pudo completar detalladamente, pero se recomienda trabajar en las pausas.",
-    mistakes: ["No se detectaron errores críticos en este nivel de análisis.", "Recomendación: Cuantificar más los resultados."],
-    overallScore: 65,
-    communicationMetrics: { pacing: 60, vocabulary: 70, clarity: 65, confidence: 60 },
-    improvementPlan: ["Practicar el método STAR.", "Usar más verbos de acción.", "Controlar el ritmo al hablar."]
+    overallSummary: "Análisis técnico básico completado. Se requiere mayor profundidad en las respuestas para un análisis ejecutivo.",
+    fillerWordAnalysis: "Se recomienda trabajar en la fluidez y reducir pausas innecesarias.",
+    mistakes: ["Falta de cuantificación en los resultados.", "Estructura STAR incompleta en algunas respuestas."],
+    overallScore: 60,
+    communicationMetrics: { pacing: 50, vocabulary: 60, clarity: 55, confidence: 50 },
+    improvementPlan: ["Integrar métricas de éxito.", "Practicar pausas deliberadas.", "Usar vocabulario más específico del sector."]
   };
 
   const apiKey = getApiKey();
@@ -141,15 +165,16 @@ export const generateSessionSummary = async (
 
   try {
     const ai = new GoogleGenAI({ apiKey });
-    const context = questions.map(q => `P: ${q.question}\nR: ${q.originalResponse}`).join("\n\n");
-    const prompt = `Eres un Evaluador de Oratoria Forense y Coach de Liderazgo Senior. Analiza el desempeño global para el cargo de ${config.role}. 
+    const context = questions.map(q => `P: ${q.question}\nR: ${q.originalResponse}\nAnálisis STAR detectado: ${JSON.stringify(q.starAnalysis)}`).join("\n\n");
+    const prompt = `Analiza el desempeño global de una entrevista para el cargo de ${config.role}. 
     
-    Contexto:\n${context}\n\n
+    Contexto de la sesión:\n${context}\n\n
     
-    1. Identifica muletillas EXACTAS.
-    2. Evalúa vocabulario y ritmo.
-    3. Proporciona un plan de mejora de 3 puntos detallado.
-    4. Asigna puntuaciones (0-100) para Pacing, Vocabulary, Clarity y Confidence.`;
+    Instrucciones:
+    1. Identifica muletillas y patrones de lenguaje débil.
+    2. Evalúa la capacidad de liderazgo y resolución según las respuestas.
+    3. Asigna puntajes reales basados en rigor ejecutivo.
+    4. Devuelve el resultado estrictamente en JSON.`;
     
     const apiCall = ai.models.generateContent({
       model: 'gemini-3-pro-preview',
@@ -181,10 +206,11 @@ export const generateSessionSummary = async (
     }).then(res => {
       const text = res.text;
       if (!text) throw new Error("No summary text");
-      return JSON.parse(cleanJsonResponse(text));
+      const cleaned = cleanJsonResponse(text);
+      return JSON.parse(cleaned);
     });
 
-    return await withTimeout(apiCall, 20000, fallback);
+    return await withTimeout(apiCall, 25000, fallback);
   } catch (error) {
     console.error("Summary Error:", error);
     return fallback;
@@ -198,10 +224,16 @@ export const transcribeAudio = async (base64Audio: string, mimeType: string): Pr
     const ai = new GoogleGenAI({ apiKey });
     const response = await ai.models.generateContent({
       model: 'gemini-3-flash-preview',
-      contents: [{ parts: [{ inlineData: { mimeType, data: base64Audio } }, { text: "Transcribe exactamente la respuesta del usuario para un análisis de oratoria profesional." }] }]
+      contents: [{ 
+        parts: [
+          { inlineData: { mimeType, data: base64Audio } }, 
+          { text: "Transcribe exactamente lo que dice el usuario. No añadas comentarios, solo el texto transcrito en español." }
+        ] 
+      }]
     });
     return response.text?.trim() || "";
-  } catch {
+  } catch (err) {
+    console.error("Transcripción fallida:", err);
     return "";
   }
 };

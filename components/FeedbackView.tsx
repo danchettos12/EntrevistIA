@@ -15,18 +15,20 @@ const FeedbackView: React.FC<FeedbackViewProps> = ({ session, onClose }) => {
 
   const getStatusColor = (text: string) => {
     const lower = text.toLowerCase();
-    if (lower.includes('faltante') || lower.includes('pobre') || lower.includes('vago') || lower.includes('débil')) return 'text-red-400 border-red-500/20 bg-red-500/5';
-    if (lower.includes('aceptable') || lower.includes('parcial')) return 'text-amber-400 border-amber-500/20 bg-amber-500/5';
+    if (lower.includes('faltante') || lower.includes('no detectado') || lower.includes('pobre') || lower.includes('vago') || lower.includes('débil')) return 'text-red-400 border-red-500/20 bg-red-500/5';
+    if (lower.includes('aceptable') || lower.includes('parcial') || lower.includes('analizado')) return 'text-amber-400 border-amber-500/20 bg-amber-500/5';
     return 'text-emerald-400 border-emerald-500/20 bg-emerald-500/5';
   };
 
   const getMetricColor = (score: number) => {
+    if (score <= 10) return 'text-slate-500 bg-slate-500/10 border-slate-500/20';
     if (score < 50) return 'text-red-500 bg-red-500/10 border-red-500/20';
     if (score < 75) return 'text-amber-500 bg-amber-500/10 border-amber-500/20';
     return 'text-emerald-500 bg-emerald-500/10 border-emerald-500/20';
   };
 
   const getMetricLabel = (score: number) => {
+    if (score === 0) return 'Incompleto';
     if (score < 40) return 'Crítico';
     if (score < 60) return 'Deficiente';
     if (score < 80) return 'Competente';
@@ -108,7 +110,7 @@ const FeedbackView: React.FC<FeedbackViewProps> = ({ session, onClose }) => {
                 <h4 className="text-[10px] font-bold text-blue-400 uppercase tracking-widest">Veredicto Profesional</h4>
                 <p className="text-slate-200 text-xl leading-relaxed font-semibold">
                   Tu desempeño global se sitúa en el percentil de {session.overallScore}%. 
-                  {session.overallScore < 70 ? ' No cumples con los estándares mínimos para un puesto de liderazgo senior en comunicación.' : ' Muestras rasgos de competencia sólida, pero con vicios técnicos corregibles.'}
+                  {session.overallScore < 70 ? ' Tu comunicación requiere ajustes técnicos en la estructuración de impacto para alcanzar niveles senior.' : ' Muestras rasgos de competencia sólida, pero con vicios técnicos corregibles en la cuantificación.'}
                 </p>
              </div>
 
@@ -118,7 +120,7 @@ const FeedbackView: React.FC<FeedbackViewProps> = ({ session, onClose }) => {
                    <div className="space-y-3">
                       <div className="flex items-center gap-4 bg-emerald-500/5 p-4 rounded-xl border border-emerald-500/10">
                          <i className="ph-bold ph-check-circle text-emerald-400"></i>
-                         <span className="text-xs text-slate-300">Coherencia estructural STAR básica</span>
+                         <span className="text-xs text-slate-300">Coherencia estructural STAR {session.overallScore > 60 ? 'sólida' : 'básica'}</span>
                       </div>
                    </div>
                 </div>
@@ -127,7 +129,7 @@ const FeedbackView: React.FC<FeedbackViewProps> = ({ session, onClose }) => {
                    <div className="space-y-3">
                       <div className="flex items-center gap-4 bg-red-500/5 p-4 rounded-xl border border-red-500/10">
                          <i className="ph-bold ph-x-circle text-red-400"></i>
-                         <span className="text-xs text-slate-300">Falta de cuantificación de logros</span>
+                         <span className="text-xs text-slate-300">{session.overallScore < 50 ? 'Falta total de resultados' : 'Falta de cuantificación precisa'}</span>
                       </div>
                    </div>
                 </div>
@@ -180,7 +182,7 @@ const FeedbackView: React.FC<FeedbackViewProps> = ({ session, onClose }) => {
                           <i className={`ph-bold ${x.icon} text-lg`}></i>
                           <div className="text-[10px] font-bold uppercase tracking-widest opacity-60">{x.label}</div>
                        </div>
-                       <p className="text-xs leading-relaxed font-bold">{x.content}</p>
+                       <p className="text-xs leading-relaxed font-bold">{x.content || "Información no proporcionada"}</p>
                      </div>
                    ))}
                 </div>
@@ -189,7 +191,7 @@ const FeedbackView: React.FC<FeedbackViewProps> = ({ session, onClose }) => {
                     <h5 className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-4 flex items-center gap-2">
                       <i className="ph ph-warning-octagon text-amber-500"></i> Crítica del Evaluador
                     </h5>
-                    <p className="text-slate-300 text-sm leading-relaxed border-l-4 border-red-500/50 pl-6 italic">
+                    <p className="text-slate-300 text-sm leading-relaxed border-l-4 border-blue-500/50 pl-6 italic">
                       {currentQ.generalFeedback}
                     </p>
                 </div>
@@ -201,10 +203,9 @@ const FeedbackView: React.FC<FeedbackViewProps> = ({ session, onClose }) => {
         </div>
       )}
 
-      {/* View: Auditoría de Oratoria (The ultra-strict tab) */}
+      {/* View: Auditoría de Oratoria */}
       {activeTab === 'comunicacion' && (
         <div className="animate-fadeIn space-y-10">
-           {/* Precision Metrics Grid */}
            <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
               {[
                 { label: 'Ritmo (Pacing)', score: session.communicationMetrics?.pacing || 0, icon: 'ph-waveform', desc: 'Control de velocidad y pausas tácticas.' },
@@ -234,7 +235,6 @@ const FeedbackView: React.FC<FeedbackViewProps> = ({ session, onClose }) => {
            </div>
 
            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-              {/* Detailed Analysis Section */}
               <div className="glass p-10 rounded-[2.5rem] border border-white/5 space-y-8 h-full">
                  <div className="flex items-center gap-4">
                     <div className="w-10 h-10 rounded-full bg-red-500/10 flex items-center justify-center text-red-500">
@@ -245,12 +245,11 @@ const FeedbackView: React.FC<FeedbackViewProps> = ({ session, onClose }) => {
                  
                  <div className="prose prose-invert max-w-none">
                     <div className="bg-black/20 p-8 rounded-3xl border border-white/5 text-slate-300 text-sm leading-relaxed whitespace-pre-line border-l-4 border-red-500/50">
-                       {session.fillerWordAnalysis}
+                       {session.fillerWordAnalysis || "No se detectaron suficientes datos de audio para un análisis de fluidez detallado."}
                     </div>
                  </div>
               </div>
 
-              {/* Improvement Plan (Strict Checklist) */}
               <div className="glass p-10 rounded-[2.5rem] border border-blue-500/20 bg-blue-500/5 space-y-8 h-full">
                  <div className="flex items-center gap-4">
                     <div className="w-10 h-10 rounded-full bg-blue-500/20 flex items-center justify-center text-blue-400">
@@ -272,15 +271,6 @@ const FeedbackView: React.FC<FeedbackViewProps> = ({ session, onClose }) => {
                           <p className="text-xs text-slate-200 font-bold leading-relaxed">{item}</p>
                        </div>
                     ))}
-                 </div>
-
-                 <div className="pt-6 border-t border-blue-500/20">
-                    <div className="flex items-center gap-3 text-[10px] font-bold text-blue-400 uppercase tracking-[0.2em] mb-4">
-                       <i className="ph ph-barbell"></i> Entrenamiento Recomendado
-                    </div>
-                    <p className="text-xs text-slate-400 italic">
-                       Practica la técnica del "Anclaje de Silencio": Antes de cada respuesta, cuenta mentalmente hasta dos. Esto eliminará el 90% de tus muletillas de inicio.
-                    </p>
                  </div>
               </div>
            </div>
@@ -312,7 +302,7 @@ const FeedbackView: React.FC<FeedbackViewProps> = ({ session, onClose }) => {
                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                     <div className="space-y-3">
                        <span className="text-[10px] font-bold uppercase text-slate-500 tracking-widest flex items-center gap-2">
-                          <i className="ph ph-microphone-slash"></i> Tu Respuesta Original (Auditada)
+                          <i className="ph ph-microphone-slash"></i> Tu Respuesta Original
                        </span>
                        <div className="p-8 rounded-[2rem] bg-white/[0.02] border border-white/5 h-full">
                           <p className="text-sm text-slate-400 italic leading-relaxed">"{q.originalResponse}"</p>
