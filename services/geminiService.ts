@@ -1,6 +1,6 @@
 
 import { GoogleGenAI, Type } from "@google/genai";
-import { SessionConfig, QuestionFeedback } from "../types";
+import { SessionConfig, QuestionFeedback } from "../types.ts";
 
 // Inicialización siguiendo estrictamente las guías del SDK
 const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || "" });

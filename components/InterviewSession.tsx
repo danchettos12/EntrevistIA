@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import { SessionConfig, QuestionFeedback, SessionRecord } from '../types';
-import { generateInterviewQuestion, analyzeQuestionResponse, generateSessionSummary, transcribeAudio } from '../services/geminiService';
+import { SessionConfig, QuestionFeedback, SessionRecord } from '../types.ts';
+import { generateInterviewQuestion, analyzeQuestionResponse, generateSessionSummary, transcribeAudio } from '../services/geminiService.ts';
 
 interface InterviewSessionProps {
   config: SessionConfig;

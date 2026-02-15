@@ -1,16 +1,15 @@
 
 import React, { useState, useEffect } from 'react';
-import { AppView, SessionConfig, SessionRecord, User } from './types';
-import { DEFAULT_CONFIG } from './constants';
-import { supabase } from './lib/supabase';
-import { getUserSessions, saveSession } from './services/databaseService';
-import Dashboard from './components/Dashboard';
-import SetupForm from './components/SetupForm';
-import InterviewSession from './components/InterviewSession';
-import FeedbackView from './components/FeedbackView';
-import AuthView from './components/AuthView';
-import LandingView from './components/LandingView';
-import DocumentationView from './components/DocumentationView';
+import { AppView, SessionConfig, SessionRecord, User } from './types.ts';
+import { DEFAULT_CONFIG } from './constants.ts';
+import { supabase } from './lib/supabase.ts';
+import { getUserSessions, saveSession } from './services/databaseService.ts';
+import Dashboard from './components/Dashboard.tsx';
+import SetupForm from './components/SetupForm.tsx';
+import InterviewSession from './components/InterviewSession.tsx';
+import FeedbackView from './components/FeedbackView.tsx';
+import AuthView from './components/AuthView.tsx';
+import LandingView from './components/LandingView.tsx';
 
 const App: React.FC = () => {
   const [user, setUser] = useState<User | null>(null);
@@ -31,9 +30,9 @@ const App: React.FC = () => {
       if (session?.user) {
         const loggedUser: User = {
           id: session.user.id,
-          name: session.user.user_metadata.full_name || session.user.email?.split('@')[0] || 'Invitado',
-          email: session.user.email || 'guest@entrevistia.local',
-          preferredRole: session.user.user_metadata.preferred_role || ''
+          name: session.user.user_metadata?.full_name || session.user.email?.split('@')[0] || 'Usuario',
+          email: session.user.email!,
+          preferredRole: session.user.user_metadata?.preferred_role || ''
         };
         setUser(loggedUser);
         setView(prev => (prev === AppView.AUTH || prev === AppView.LANDING) ? AppView.DASHBOARD : prev);
@@ -41,7 +40,7 @@ const App: React.FC = () => {
       } else {
         setUser(null);
         setSessions([]);
-        // Si no hay sesión, regresamos a landing a menos que estemos en auth
+        // Si no hay sesión, nos aseguramos de no quedar en una vista privada
         if (view !== AppView.LANDING && view !== AppView.AUTH) {
           setView(AppView.LANDING);
         }
@@ -49,13 +48,23 @@ const App: React.FC = () => {
       setIsLoading(false);
     });
 
-    return () => subscription.unsubscribe();
+    // Safety timeout to prevent infinite loading
+    const timer = setTimeout(() => setIsLoading(false), 3000);
+
+    return () => {
+      subscription.unsubscribe();
+      clearTimeout(timer);
+    };
   }, [view]);
 
   const fetchSessions = async (userId: string) => {
     if (!supabase) return;
-    const data = await getUserSessions(userId);
-    setSessions(data);
+    try {
+      const data = await getUserSessions(userId);
+      setSessions(data);
+    } catch (err) {
+      console.error("Error fetching sessions:", err);
+    }
   };
 
   const handleLogout = async () => {
@@ -105,22 +114,23 @@ const App: React.FC = () => {
 
   return (
     <div className={`min-h-screen flex flex-col transition-colors duration-1000 ${bgClass}`}>
-      {/* Banner de modo local */}
-      {supabase?.isMock && view !== AppView.LANDING && view !== AppView.AUTH && (
-        <div className="bg-blue-600/20 text-blue-400 text-[8px] font-bold uppercase tracking-widest py-1 text-center fixed top-0 w-full z-[200] border-b border-blue-500/20">
-          Modo Local Activo (Simulación de Entrenamiento)
-        </div>
-      )}
-
-      {user && view !== AppView.DOCUMENTATION && (
-        <header className="fixed top-6 left-1/2 -translate-x-1/2 z-[100] w-[95%] max-w-7xl print:hidden">
-          <div className="glass px-6 py-3 rounded-xl flex items-center justify-between shadow-2xl border-white/5">
+      {user && (
+        <header className="fixed top-6 left-1/2 -translate-x-1/2 z-[100] w-[95%] max-w-7xl">
+          <div className="glass px-6 py-3 rounded-xl flex items-center justify-between shadow-2xl border-white/5 relative overflow-hidden">
+            {supabase?.isMock && (
+              <div className="absolute top-0 left-0 h-0.5 w-full bg-amber-500 animate-pulse"></div>
+            )}
+            
             <div className="flex items-center gap-3 cursor-pointer" onClick={() => setView(AppView.DASHBOARD)}>
               <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center text-white font-bold text-lg">
                 <i className="ph-bold ph-briefcase"></i>
               </div>
-              <span className="text-lg font-bold tracking-tighter text-white uppercase">EntrevistIA</span>
+              <div className="flex flex-col">
+                <span className="text-lg font-bold tracking-tighter text-white uppercase leading-none">EntrevistIA</span>
+                {supabase?.isMock && <span className="text-[7px] font-bold text-amber-500 uppercase tracking-widest mt-1">Modo Local</span>}
+              </div>
             </div>
+            
             <nav className="flex gap-6 items-center">
               <button onClick={() => setView(AppView.DASHBOARD)} className={`text-[10px] font-bold uppercase tracking-widest ${view === AppView.DASHBOARD ? 'text-blue-400' : 'text-slate-400 hover:text-white'}`}>Panel</button>
               <button onClick={handleLogout} className="text-[10px] font-bold text-slate-500 uppercase tracking-widest hover:text-red-400 transition-colors bg-white/5 px-4 py-2 rounded-lg border border-white/5">Cerrar Sesión</button>
@@ -128,14 +138,13 @@ const App: React.FC = () => {
           </div>
         </header>
       )}
-      <main className={`flex-1 ${user && view !== AppView.DOCUMENTATION ? 'pt-32' : 'pt-0'} pb-20 px-4 max-w-7xl mx-auto w-full`}>
+      <main className={`flex-1 ${user ? 'pt-32' : 'pt-0'} pb-20 px-4 max-w-7xl mx-auto w-full`}>
         {view === AppView.LANDING && <LandingView onGetStarted={() => openAuth('register')} onLogin={() => openAuth('login')} />}
         {view === AppView.AUTH && <AuthView initialMode={authMode} onBack={() => setView(AppView.LANDING)} />}
-        {view === AppView.DASHBOARD && user && <Dashboard user={user} sessions={sessions} onStart={() => setView(AppView.SETUP)} onViewSession={handleViewSession} onOpenDoc={() => setView(AppView.DOCUMENTATION)} />}
+        {view === AppView.DASHBOARD && user && <Dashboard user={user} sessions={sessions} onStart={() => setView(AppView.SETUP)} onViewSession={handleViewSession} />}
         {view === AppView.SETUP && <SetupForm initialRole={user?.preferredRole} onStart={(c) => { setCurrentConfig(c); setView(AppView.INTERVIEW); }} onBack={() => setView(AppView.DASHBOARD)} />}
         {view === AppView.INTERVIEW && user && <InterviewSession config={currentConfig} userId={user.id} onFinish={handleFinishSession} onCancel={() => setView(AppView.DASHBOARD)} />}
         {view === AppView.FEEDBACK && activeSession && <FeedbackView session={activeSession} onClose={() => setView(AppView.DASHBOARD)} />}
-        {view === AppView.DOCUMENTATION && <DocumentationView onBack={() => setView(AppView.DASHBOARD)} />}
       </main>
     </div>
   );

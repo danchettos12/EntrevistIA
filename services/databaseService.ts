@@ -1,32 +1,32 @@
 
-import { supabase } from '../lib/supabase';
-import { SessionRecord } from '../types';
+import { supabase } from '../lib/supabase.ts';
+import { SessionRecord } from '../types.ts';
 
 export const saveSession = async (session: Omit<SessionRecord, 'id'>): Promise<SessionRecord | null> => {
-  if (!supabase) return null;
-
-  const payload = {
-    user_id: session.userId,
-    config: session.config,
-    overall_score: session.overallScore,
-    overall_summary: session.overallSummary,
-    filler_word_analysis: session.fillerWordAnalysis,
-    mistakes: session.mistakes,
-    questions: session.questions
-  };
+  if (!supabase) {
+    console.error("Cliente de Supabase no inicializado.");
+    return null;
+  }
 
   const { data, error } = await supabase
     .from('sessions')
-    .insert([payload])
+    .insert([{
+      user_id: session.userId,
+      config: session.config,
+      overall_score: session.overallScore,
+      overall_summary: session.overallSummary,
+      filler_word_analysis: session.fillerWordAnalysis,
+      mistakes: session.mistakes,
+      questions: session.questions
+    }])
     .select()
     .single();
 
   if (error) {
-    console.error("Error al guardar sesión:", error);
+    console.error("Error al guardar la sesión en Supabase:", error);
     return null;
   }
 
-  // Mapear de vuelta para el estado de la app
   return {
     ...data,
     userId: data.user_id,
@@ -38,7 +38,10 @@ export const saveSession = async (session: Omit<SessionRecord, 'id'>): Promise<S
 };
 
 export const getUserSessions = async (userId: string): Promise<SessionRecord[]> => {
-  if (!supabase) return [];
+  if (!supabase) {
+    console.error("Cliente de Supabase no inicializado.");
+    return [];
+  }
 
   const { data, error } = await supabase
     .from('sessions')
@@ -52,11 +55,17 @@ export const getUserSessions = async (userId: string): Promise<SessionRecord[]> 
   }
 
   return data.map((s: any) => ({
-    ...s,
+    id: s.id,
     userId: s.user_id,
+    timestamp: new Date(s.timestamp).getTime(),
+    config: s.config,
     overallScore: s.overall_score,
+    overall_summary: s.overall_summary,
+    filler_word_analysis: s.filler_word_analysis,
+    mistakes: s.mistakes,
+    questions: s.questions,
+    // Adaptación de nombres de propiedades de BD a TS
     overallSummary: s.overall_summary,
-    fillerWordAnalysis: s.filler_word_analysis,
-    timestamp: new Date(s.timestamp).getTime()
+    fillerWordAnalysis: s.filler_word_analysis
   }));
 };

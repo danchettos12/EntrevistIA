@@ -6,10 +6,14 @@ interface DocumentationViewProps {
 }
 
 const DocumentationView: React.FC<DocumentationViewProps> = ({ onBack }) => {
+  const handlePrint = () => {
+    window.print();
+  };
+
   return (
-    <div className="max-w-5xl mx-auto py-12 px-6 animate-fadeIn print:p-0 print:bg-white print:text-black">
-      {/* Botones de control - Ocultos en impresión */}
-      <div className="flex justify-between items-center mb-12 print:hidden">
+    <div className="max-w-5xl mx-auto space-y-12 py-10 animate-fadeIn print:bg-white print:text-black">
+      {/* Cabecera de Documento */}
+      <div className="flex justify-between items-center border-b border-white/10 pb-8 print:hidden">
         <button 
           onClick={onBack}
           className="flex items-center gap-2 text-[10px] font-bold text-slate-500 hover:text-white uppercase tracking-widest transition-colors"
@@ -17,128 +21,136 @@ const DocumentationView: React.FC<DocumentationViewProps> = ({ onBack }) => {
           <i className="ph ph-arrow-left"></i> Volver al Panel
         </button>
         <button 
-          onClick={() => window.print()}
-          className="flex items-center gap-3 px-8 py-4 bg-blue-600 text-white rounded-2xl font-bold uppercase text-[10px] tracking-[0.2em] hover:bg-blue-500 transition-all shadow-2xl shadow-blue-900/40"
+          onClick={handlePrint}
+          className="flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-xl font-bold uppercase text-[10px] tracking-widest hover:bg-blue-500 transition-all shadow-xl"
         >
-          <i className="ph ph-file-pdf text-lg"></i> Exportar a PDF Profesional
+          <i className="ph ph-file-pdf"></i> Exportar a PDF
         </button>
       </div>
 
-      {/* PORTADA DEL DOCUMENTO (PRD) */}
-      <header className="text-center py-20 border-b border-white/10 mb-20 print:border-slate-200">
-        <div className="inline-flex w-24 h-24 bg-blue-600 rounded-[2rem] items-center justify-center text-white text-5xl font-bold mb-8 shadow-3xl">
+      {/* Portada del Manual */}
+      <header className="text-center space-y-6 pt-10">
+        <div className="inline-flex w-24 h-24 bg-blue-600 rounded-[2rem] items-center justify-center text-white text-5xl font-bold mb-4 shadow-2xl">
           <i className="ph ph-briefcase"></i>
         </div>
-        <h1 className="text-6xl font-black tracking-tighter text-white print:text-black mb-4 uppercase">
-          Entrevist<span className="text-blue-500">IA</span> Elite
+        <h1 className="text-5xl font-extrabold tracking-tight text-white print:text-black">
+          ENTREVIST<span className="text-blue-500">IA</span> ELITE
         </h1>
-        <p className="text-blue-400 text-sm font-bold uppercase tracking-[1em] mb-12 print:text-blue-600">
-          Product Requirements Document (PRD)
+        <p className="text-slate-400 text-xs font-bold uppercase tracking-[0.5em] print:text-slate-600">
+          Manual Completo del Sistema v1.0
         </p>
-        <div className="flex justify-center gap-12 opacity-40 print:opacity-100 print:text-slate-500">
-          <div className="text-center">
-            <span className="block text-[8px] font-bold uppercase tracking-widest">Documento ID</span>
-            <span className="text-xs font-mono">EIA-2025-PRD-01</span>
-          </div>
-          <div className="text-center">
-            <span className="block text-[8px] font-bold uppercase tracking-widest">Estado</span>
-            <span className="text-xs font-mono">Final / Master</span>
-          </div>
-        </div>
+        <div className="h-px w-40 bg-gradient-to-r from-transparent via-blue-500 to-transparent mx-auto mt-8"></div>
       </header>
 
-      <article className="space-y-20">
-        {/* SECCIÓN 1: RESUMEN EJECUTIVO */}
-        <section className="space-y-6">
-          <div className="flex items-center gap-4">
-             <span className="w-10 h-10 rounded-full bg-blue-600/20 text-blue-500 flex items-center justify-center font-bold">01</span>
-             <h2 className="text-3xl font-bold text-white print:text-black tracking-tight">Visión y Propósito</h2>
-          </div>
-          <div className="glass p-10 rounded-[2.5rem] print:bg-transparent print:border-none print:p-0">
-            <p className="text-slate-300 print:text-slate-800 leading-relaxed text-lg">
-              EntrevistIA Elite es una plataforma de coaching de carrera diseñada para cerrar la brecha entre la experiencia técnica y la excelencia comunicativa. A diferencia de los simuladores genéricos, utiliza modelos de Inteligencia Artificial Generativa (LLMs) para auditar cada frase del usuario bajo estándares de selección ejecutiva internacional.
+      {/* Sección 1: Visión General */}
+      <section className="glass p-12 rounded-[2.5rem] space-y-8 print:bg-transparent print:border-none print:shadow-none">
+        <div className="space-y-4">
+          <h2 className="text-2xl font-bold text-white print:text-black uppercase tracking-tight">1. Propósito de la Plataforma</h2>
+          <p className="text-slate-300 print:text-slate-800 leading-relaxed text-lg">
+            EntrevistIA es una herramienta de Inteligencia Artificial Generativa diseñada para elevar la competencia comunicativa de profesionales de nivel medio y senior. Utiliza el modelo <strong>Gemini 3 Pro</strong> para simular escenarios de alta presión, proporcionando una retroalimentación inmediata basada en estándares corporativos internacionales.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          <div className="p-8 bg-white/5 rounded-3xl border border-white/10 print:bg-slate-50 print:border-slate-200">
+            <h3 className="font-bold text-blue-400 uppercase text-[10px] tracking-widest mb-4">Especialidad Principal</h3>
+            <p className="text-sm text-slate-400 print:text-slate-700 leading-relaxed">
+              Análisis estructural de respuestas conductuales mediante la metodología STAR (Situación, Tarea, Acción, Resultado), garantizando que el usuario demuestre impacto tangible.
             </p>
           </div>
-        </section>
+          <div className="p-8 bg-white/5 rounded-3xl border border-white/10 print:bg-slate-50 print:border-slate-200">
+            <h3 className="font-bold text-emerald-400 uppercase text-[10px] tracking-widest mb-4">Inteligencia de Datos</h3>
+            <p className="text-sm text-slate-400 print:text-slate-700 leading-relaxed">
+              Detección de "filler words" (muletillas), análisis de tono emocional y métricas de asertividad para optimizar la proyección de autoridad ejecutiva.
+            </p>
+          </div>
+        </div>
+      </section>
 
-        {/* SECCIÓN 2: CORE DE INTELIGENCIA */}
-        <section className="space-y-8">
-          <div className="flex items-center gap-4">
-             <span className="w-10 h-10 rounded-full bg-purple-600/20 text-purple-500 flex items-center justify-center font-bold">02</span>
-             <h2 className="text-3xl font-bold text-white print:text-black tracking-tight">Arquitectura de Inteligencia Artificial</h2>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
-            <div className="space-y-4 p-8 border border-white/5 rounded-3xl bg-white/5 print:bg-slate-50 print:border-slate-200">
-              <h4 className="text-blue-400 font-bold uppercase text-[10px] tracking-widest">Gemini 3 Flash (Latencia)</h4>
-              <p className="text-xs text-slate-400 print:text-slate-700 leading-relaxed">
-                Encargado del procesamiento de audio en tiempo real y la generación dinámica de preguntas. Su arquitectura optimizada permite transcribir y responder en milisegundos, manteniendo el flujo de la conversación natural.
-              </p>
+      {/* Sección 2: Funciones Técnicas */}
+      <section className="space-y-10 px-4">
+        <h2 className="text-xl font-bold text-slate-500 uppercase tracking-[0.3em] text-center">Funciones y Capacidades</h2>
+        
+        <div className="space-y-12">
+          {/* Función 1 */}
+          <div className="flex flex-col md:flex-row gap-8 items-start">
+            <div className="w-12 h-12 bg-blue-600/20 text-blue-400 rounded-2xl flex items-center justify-center text-2xl flex-shrink-0">
+               <i className="ph ph-microphone-stage"></i>
             </div>
-            <div className="space-y-4 p-8 border border-white/5 rounded-3xl bg-white/5 print:bg-slate-50 print:border-slate-200">
-              <h4 className="text-purple-400 font-bold uppercase text-[10px] tracking-widest">Gemini 3 Pro (Razonamiento)</h4>
-              <p className="text-xs text-slate-400 print:text-slate-700 leading-relaxed">
-                Motor central de análisis. Ejecuta el desglose STAR, evalúa la asertividad y genera el "Modo Espejo". Posee la capacidad de razonamiento necesaria para entender matices corporativos y sutilezas del lenguaje senior.
+            <div className="space-y-3">
+              <h3 className="text-lg font-bold text-white print:text-black">Simulación de Voz en Tiempo Real</h3>
+              <p className="text-slate-400 print:text-slate-700 text-sm leading-relaxed">
+                El sistema integra un módulo de transcripción automática. El usuario puede hablar directamente a su micrófono; la IA procesa el audio, lo transcribe y lo analiza para buscar vicios de lenguaje o pausas sonoras innecesarias.
               </p>
             </div>
           </div>
-        </section>
 
-        {/* SECCIÓN 3: FUNCIONALIDADES CLAVE */}
-        <section className="space-y-10 page-break-before">
-          <div className="flex items-center gap-4">
-             <span className="w-10 h-10 rounded-full bg-emerald-600/20 text-emerald-500 flex items-center justify-center font-bold">03</span>
-             <h2 className="text-3xl font-bold text-white print:text-black tracking-tight">Desglose de Funcionalidades</h2>
-          </div>
-          <div className="space-y-12">
-            <div>
-              <h3 className="text-xl font-bold text-white print:text-black mb-4">A. Auditoría Estructural (STAR)</h3>
-              <p className="text-sm text-slate-400 print:text-slate-700 leading-relaxed">
-                El sistema descompone cada respuesta en cuatro pilares: <strong>Situación, Tarea, Acción y Resultado</strong>. Si un candidato omite las métricas (Resultado) o no define su responsabilidad (Tarea), la IA penaliza el puntaje y genera una recomendación correctiva inmediata.
-              </p>
+          {/* Función 2 */}
+          <div className="flex flex-col md:flex-row gap-8 items-start">
+            <div className="w-12 h-12 bg-purple-600/20 text-purple-400 rounded-2xl flex items-center justify-center text-2xl flex-shrink-0">
+               <i className="ph ph-magic-wand"></i>
             </div>
-            <div>
-              <h3 className="text-xl font-bold text-white print:text-black mb-4">B. Modo Espejo (Narrativa Ejecutiva)</h3>
-              <p className="text-sm text-slate-400 print:text-slate-700 leading-relaxed">
-                Esta función transforma la transcripción cruda del usuario en un guion profesional. La IA reescribe la respuesta eliminando informalidades y potenciando palabras clave de liderazgo, permitiendo al usuario "escucharse" como un directivo de alto rango.
-              </p>
-            </div>
-            <div>
-              <h3 className="text-xl font-bold text-white print:text-black mb-4">C. Análisis de Comunicación Oral</h3>
-              <p className="text-sm text-slate-400 print:text-slate-700 leading-relaxed">
-                Detección automática de "filler words" (muletillas). El sistema analiza la frecuencia de pausas sonoras y evalúa el tono emocional para asegurar que el candidato proyecte confianza sin sonar arrogante.
+            <div className="space-y-3">
+              <h3 className="text-lg font-bold text-white print:text-black">Modo Espejo (Optimización de Narrativa)</h3>
+              <p className="text-slate-400 print:text-slate-700 text-sm leading-relaxed">
+                Esta es la función estrella: La IA toma la respuesta original del usuario (a veces desordenada o informal) y la reescribe completamente. Crea una versión "ideal" que suena como un director de alto rango, manteniendo la veracidad de los hechos del usuario.
               </p>
             </div>
           </div>
-        </section>
 
-        {/* SECCIÓN 4: ESPECIFICACIONES TÉCNICAS */}
-        <section className="space-y-8 page-break-before">
-          <div className="flex items-center gap-4">
-             <span className="w-10 h-10 rounded-full bg-amber-600/20 text-amber-500 flex items-center justify-center font-bold">04</span>
-             <h2 className="text-3xl font-bold text-white print:text-black tracking-tight">Especificaciones del Sistema</h2>
+          {/* Función 3 */}
+          <div className="flex flex-col md:flex-row gap-8 items-start">
+            <div className="w-12 h-12 bg-emerald-600/20 text-emerald-400 rounded-2xl flex items-center justify-center text-2xl flex-shrink-0">
+               <i className="ph ph-gauge"></i>
+            </div>
+            <div className="space-y-3">
+              <h3 className="text-lg font-bold text-white print:text-black">Niveles de Rigor Personalizables</h3>
+              <p className="text-slate-400 print:text-slate-700 text-sm leading-relaxed">
+                Antes de cada sesión, el usuario ajusta la "Presión del Entrevistador" y el "Enfoque Técnico". Esto cambia la personalidad de la IA: de un mentor amable a un reclutador implacable de Wall Street o Silicon Valley.
+              </p>
+            </div>
           </div>
-          <div className="p-12 border border-white/10 rounded-[3rem] bg-slate-900/50 print:bg-transparent print:border-slate-200">
-             <ul className="space-y-6 text-sm">
-                <li className="flex gap-4">
-                  <span className="text-blue-500 font-bold">Persistencia:</span>
-                  <span className="text-slate-400 print:text-slate-700">Arquitectura híbrida. Utiliza Supabase (PostgreSQL) para cuentas reales y LocalStorage con un motor de Mocking para demostraciones offline.</span>
-                </li>
-                <li className="flex gap-4">
-                  <span className="text-blue-500 font-bold">Seguridad:</span>
-                  <span className="text-slate-400 print:text-slate-700">Manejo de variables de entorno seguras inyectadas vía Vite/Vercel. Encriptación de audio en tránsito.</span>
-                </li>
-                <li className="flex gap-4">
-                  <span className="text-blue-500 font-bold">UI Framework:</span>
-                  <span className="text-slate-400 print:text-slate-700">Tailwind CSS con enfoque en "Glassmorphism" y diseño responsivo para móviles de alta gama.</span>
-                </li>
+        </div>
+      </section>
+
+      {/* Sección 3: Arquitectura y Requisitos */}
+      <section className="p-12 border border-white/10 rounded-[2.5rem] bg-slate-900/50 print:bg-transparent">
+        <h2 className="text-2xl font-bold text-white print:text-black mb-8">Especificaciones Técnicas</h2>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-10">
+          <div className="space-y-4">
+             <h4 className="text-[10px] font-bold text-blue-500 uppercase tracking-widest">Motor de IA</h4>
+             <ul className="text-sm text-slate-400 print:text-slate-700 space-y-2">
+               <li>• Gemini 3 Pro (Razonamiento Complejo)</li>
+               <li>• Gemini 3 Flash (Transcripción Veloz)</li>
+               <li>• Análisis JSON Schema Validated</li>
              </ul>
           </div>
-        </section>
-      </article>
+          <div className="space-y-4">
+             <h4 className="text-[10px] font-bold text-emerald-500 uppercase tracking-widest">Persistencia</h4>
+             <ul className="text-sm text-slate-400 print:text-slate-700 space-y-2">
+               <li>• Supabase Auth (Cuentas Reales)</li>
+               <li>• PostgreSQL (Historial de Sesiones)</li>
+               <li>• Encriptación AES-256 en tránsito</li>
+             </ul>
+          </div>
+        </div>
 
-      <footer className="mt-32 pt-10 border-t border-white/5 text-center opacity-40 print:opacity-100">
-         <p className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.5em] mb-2">EntrevistIA Elite - Documento de Referencia Técnica</p>
-         <p className="text-[8px] text-slate-600">© 2025 Professional AI Coaching Division</p>
+        {/* Advertencia de Configuración */}
+        <div className="mt-12 p-6 bg-red-500/10 border border-red-500/20 rounded-2xl print:hidden">
+          <h4 className="text-red-400 font-bold text-[10px] uppercase tracking-widest mb-2 flex items-center gap-2">
+            <i className="ph ph-warning-octagon"></i> IMPORTANTE: Configuración de Producción
+          </h4>
+          <p className="text-xs text-red-300/80 leading-relaxed">
+            Para que el sistema de cuentas funcione correctamente, es imperativo configurar las variables <code>SUPABASE_URL</code> y <code>SUPABASE_ANON_KEY</code> en el panel de Vercel. De lo contrario, el sistema mostrará un error de servidor.
+          </p>
+        </div>
+      </section>
+
+      <footer className="text-center py-10 opacity-30 print:opacity-100">
+        <p className="text-[9px] font-bold text-slate-500 uppercase tracking-[0.5em]">
+          ENTREVISTIA ELITE - DOCUMENTO CONFIDENCIAL DE ENTRENAMIENTO
+        </p>
+        <p className="text-[8px] mt-2">© 2025 AI Career Coaching Platform</p>
       </footer>
     </div>
   );
