@@ -1,4 +1,3 @@
-
 import { createClient } from '@supabase/supabase-js';
 
 const supabaseUrl = process.env.SUPABASE_URL;
@@ -75,7 +74,7 @@ const createInternalClient = () => {
       }
     },
     from: (table: string) => ({
-      select: (_cols: string = '*') => ({
+      select: () => ({
         eq: (col: string, val: any) => ({
           order: (orderCol: string, { ascending }: any = {}) => {
             let data = JSON.parse(localStorage.getItem(`entrevistia_db_${table}`) || '[]');
