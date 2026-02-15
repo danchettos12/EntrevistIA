@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { SessionConfig, QuestionFeedback, SessionRecord } from '../types.ts';
 import { generateInterviewQuestion, analyzeQuestionResponse, generateSessionSummary, transcribeAudio } from '../services/geminiService.ts';
@@ -24,6 +25,7 @@ const InterviewSession: React.FC<InterviewSessionProps> = ({ config, userId, onF
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
   const questionsDone = useRef<string[]>([]);
+  const transcriptionPromiseRef = useRef<Promise<void> | null>(null);
 
   useEffect(() => {
     loadNextQuestion();
@@ -59,45 +61,33 @@ const InterviewSession: React.FC<InterviewSessionProps> = ({ config, userId, onF
     }, 1000);
   };
 
-  const handleNext = async () => {
-    if (processing) return;
-    
-    setProcessing(true);
-    if (timerRef.current) clearInterval(timerRef.current);
-    if (isRecording) stopRecording();
-
-    try {
-      const feedback = await analyzeQuestionResponse(question, response || "El candidato no proporcionó una respuesta verbal.", config);
-      const updatedResults = [...results, feedback];
-      setResults(updatedResults);
-
-      if (currentIdx + 1 < config.questionCount) {
-        setCurrentIdx(currentIdx + 1);
-        setResponse("");
-        loadNextQuestion();
-      } else {
-        const summary = await generateSessionSummary(updatedResults, config);
-        const record: SessionRecord = {
-          id: Math.random().toString(36).substr(2, 9),
-          userId,
-          timestamp: Date.now(),
-          config,
-          questions: updatedResults,
-          ...summary
-        };
-        onFinish(record);
-      }
-    } catch (err) {
-      console.error("Error procesando respuesta:", err);
-      // Fallback en caso de error crítico
-      if (currentIdx + 1 < config.questionCount) {
-         setCurrentIdx(currentIdx + 1);
-         setResponse("");
-         loadNextQuestion();
-      }
-    } finally {
-      setProcessing(false);
+  const encodeToBase64 = (buffer: ArrayBuffer): string => {
+    const bytes = new Uint8Array(buffer);
+    let binary = '';
+    for (let i = 0; i < bytes.byteLength; i++) {
+      binary += String.fromCharCode(bytes[i]);
     }
+    return btoa(binary);
+  };
+
+  const handleTranscription = async (blob: Blob) => {
+    setTranscribing(true);
+    const transcriptionPromise = (async () => {
+      try {
+        const arrayBuffer = await blob.arrayBuffer();
+        const base64Audio = encodeToBase64(arrayBuffer);
+        const transcription = await transcribeAudio(base64Audio, blob.type || 'audio/webm');
+        if (transcription) {
+          setResponse(prev => prev + (prev ? " " : "") + transcription);
+        }
+      } catch (err) {
+        console.error("Error en procesamiento de audio:", err);
+      } finally {
+        setTranscribing(false);
+      }
+    })();
+    transcriptionPromiseRef.current = transcriptionPromise;
+    return transcriptionPromise;
   };
 
   const startRecording = async () => {
@@ -113,16 +103,16 @@ const InterviewSession: React.FC<InterviewSessionProps> = ({ config, userId, onF
         }
       };
 
-      mediaRecorder.onstop = async () => {
+      mediaRecorder.onstop = () => {
         const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
-        await handleTranscription(audioBlob);
+        handleTranscription(audioBlob);
         stream.getTracks().forEach(track => track.stop());
       };
 
       mediaRecorder.start();
       setIsRecording(true);
     } catch (err) {
-      alert("Se requiere acceso al micrófono para realizar la entrevista.");
+      alert("Se requiere acceso al micrófono para realizar la entrevista profesional.");
       console.error(err);
     }
   };
@@ -134,40 +124,73 @@ const InterviewSession: React.FC<InterviewSessionProps> = ({ config, userId, onF
     setIsRecording(false);
   };
 
-  const handleTranscription = async (blob: Blob) => {
-    setTranscribing(true);
+  const handleNext = async () => {
+    if (processing) return;
+    
+    setProcessing(true);
+    if (timerRef.current) clearInterval(timerRef.current);
+    
+    // Si estaba grabando, detenemos y esperamos la transcripción
+    if (isRecording) {
+      stopRecording();
+    }
+
+    // Esperamos a que cualquier transcripción pendiente termine
+    if (transcriptionPromiseRef.current) {
+      await transcriptionPromiseRef.current;
+    }
+
     try {
-      const reader = new FileReader();
-      reader.readAsDataURL(blob);
-      reader.onloadend = async () => {
-        const result = reader.result as string;
-        if (result) {
-          const base64Audio = result.split(',')[1];
-          const transcription = await transcribeAudio(base64Audio, 'audio/webm');
-          if (transcription) {
-            setResponse(prev => prev + (prev ? " " : "") + transcription);
-          }
-        }
-      };
+      const finalResponse = response.trim() || "El candidato no proporcionó una respuesta verbal.";
+      const feedback = await analyzeQuestionResponse(question, finalResponse, config);
+      const updatedResults = [...results, feedback];
+      setResults(updatedResults);
+
+      if (currentIdx + 1 < config.questionCount) {
+        setCurrentIdx(currentIdx + 1);
+        setResponse("");
+        transcriptionPromiseRef.current = null;
+        loadNextQuestion();
+      } else {
+        const summary = await generateSessionSummary(updatedResults, config);
+        const record: SessionRecord = {
+          id: Math.random().toString(36).substr(2, 9),
+          userId,
+          timestamp: Date.now(),
+          config,
+          questions: updatedResults,
+          ...summary
+        };
+        onFinish(record);
+      }
     } catch (err) {
-      console.error("Error en procesamiento de audio.", err);
+      console.error("Error procesando respuesta:", err);
+      // Fallback simple para no bloquear la app
+      if (currentIdx + 1 < config.questionCount) {
+         setCurrentIdx(currentIdx + 1);
+         setResponse("");
+         loadNextQuestion();
+      }
     } finally {
-      setTranscribing(false);
+      setProcessing(false);
     }
   };
 
   if (loading || processing) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[500px] space-y-6">
+      <div className="flex flex-col items-center justify-center min-h-[500px] space-y-8 animate-pulse">
         <div className="relative">
-          <div className="w-16 h-16 border-4 border-slate-700 border-t-blue-500 rounded-full animate-spin"></div>
+          <div className="w-20 h-20 border-4 border-slate-800 border-t-blue-500 rounded-full animate-spin"></div>
           <div className="absolute inset-0 flex items-center justify-center">
-            <i className="ph-bold ph-brain text-blue-500 animate-pulse"></i>
+            <i className="ph-bold ph-lightning text-blue-500 text-xl"></i>
           </div>
         </div>
-        <p className="text-slate-400 font-medium uppercase tracking-[0.3em] text-[10px]">
-          {processing ? 'Analizando respuesta...' : 'Generando pregunta...'}
-        </p>
+        <div className="text-center space-y-2">
+          <p className="text-white font-bold uppercase tracking-[0.3em] text-xs">
+            {processing ? 'Analizando Competencias...' : 'Sincronizando Entrevistador...'}
+          </p>
+          <p className="text-slate-500 text-[10px] uppercase tracking-widest">Esto puede tardar unos segundos</p>
+        </div>
       </div>
     );
   }
@@ -177,14 +200,14 @@ const InterviewSession: React.FC<InterviewSessionProps> = ({ config, userId, onF
       <div className="flex justify-between items-center px-4">
         <div className="flex flex-col">
           <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">
-            Fase de Evaluación
+            Fase de Evaluación Conductual
           </span>
           <span className="text-white font-bold text-sm">
             Pregunta {currentIdx + 1} de {config.questionCount}
           </span>
         </div>
-        <div className={`px-5 py-2 rounded-xl border-2 font-mono text-sm transition-all shadow-lg ${timeLeft < 20 ? 'bg-red-500/10 border-red-500/40 text-red-400 animate-pulse' : 'bg-white/5 border-white/10 text-slate-400'}`}>
-          <i className="ph-bold ph-timer mr-2"></i>
+        <div className={`px-5 py-2 rounded-xl border-2 font-mono text-sm transition-all shadow-lg flex items-center gap-3 ${timeLeft < 20 ? 'bg-red-500/10 border-red-500/40 text-red-400 animate-pulse' : 'bg-white/5 border-white/10 text-slate-400'}`}>
+          <i className="ph-bold ph-timer"></i>
           {Math.floor(timeLeft / 60)}:{(timeLeft % 60).toString().padStart(2, '0')}
         </div>
       </div>
@@ -200,17 +223,17 @@ const InterviewSession: React.FC<InterviewSessionProps> = ({ config, userId, onF
         <textarea 
           value={response}
           onChange={(e) => setResponse(e.target.value)}
-          className="w-full h-80 p-12 rounded-[2.5rem] glass border border-white/5 focus:border-blue-500/50 outline-none text-xl text-slate-200 resize-none transition-all shadow-inner placeholder:text-slate-700"
-          placeholder="Responde verbalmente o escribe aquí tu respuesta..."
+          className="w-full h-80 p-12 rounded-[2.5rem] glass border border-white/5 focus:border-blue-500/50 outline-none text-xl text-slate-200 resize-none transition-all shadow-inner placeholder:text-slate-700 font-light leading-relaxed"
+          placeholder="Comience a hablar para transcribir su respuesta o escriba aquí directamente..."
         />
         
         {isRecording && (
-          <div className="absolute top-12 right-12 flex gap-1 items-end h-8">
-            {[1,2,3,4,5].map(i => (
+          <div className="absolute top-12 right-12 flex gap-1.5 items-end h-10">
+            {[1,2,3,4,5,6].map(i => (
               <div 
                 key={i} 
-                className="w-1.5 bg-blue-500 rounded-full animate-bounce" 
-                style={{ height: `${Math.random() * 100}%`, animationDelay: `${i * 0.1}s` }}
+                className="w-2 bg-blue-500 rounded-full animate-bounce" 
+                style={{ height: `${20 + Math.random() * 80}%`, animationDelay: `${i * 0.15}s`, animationDuration: '0.6s' }}
               ></div>
             ))}
           </div>
@@ -220,13 +243,14 @@ const InterviewSession: React.FC<InterviewSessionProps> = ({ config, userId, onF
           {transcribing && (
             <div className="flex items-center gap-3 px-5 py-2 bg-blue-500/10 border border-blue-500/20 rounded-full animate-pulse shadow-lg">
                <div className="w-2 h-2 bg-blue-500 rounded-full animate-ping"></div>
-               <span className="text-[10px] font-bold text-blue-400 uppercase tracking-widest">Escuchando...</span>
+               <span className="text-[10px] font-bold text-blue-400 uppercase tracking-widest">Procesando Voz...</span>
             </div>
           )}
           <button 
             onClick={() => isRecording ? stopRecording() : startRecording()}
             disabled={transcribing}
             className={`w-20 h-20 rounded-3xl flex items-center justify-center transition-all shadow-2xl ${isRecording ? 'bg-red-600 text-white scale-110 shadow-red-900/40' : 'bg-white text-slate-900 hover:bg-slate-200 disabled:opacity-50'}`}
+            title={isRecording ? "Detener grabación" : "Iniciar grabación de voz"}
           >
             <i className={`ph-bold ${isRecording ? 'ph-stop' : 'ph-microphone-stage'} text-3xl`}></i>
           </button>
@@ -238,9 +262,9 @@ const InterviewSession: React.FC<InterviewSessionProps> = ({ config, userId, onF
         <button 
           onClick={handleNext} 
           disabled={!response.trim() || transcribing || processing}
-          className="bg-blue-600 hover:bg-blue-500 text-white font-bold py-5 px-12 rounded-2xl shadow-2xl shadow-blue-900/40 uppercase text-[10px] tracking-widest transition-all disabled:opacity-30 flex items-center gap-3"
+          className="bg-blue-600 hover:bg-blue-500 text-white font-bold py-5 px-12 rounded-2xl shadow-2xl shadow-blue-900/40 uppercase text-[10px] tracking-[0.2em] transition-all disabled:opacity-30 flex items-center gap-3 border border-blue-400/20"
         >
-          {currentIdx + 1 === config.questionCount ? 'Finalizar y Evaluar' : 'Siguiente Pregunta'}
+          {currentIdx + 1 === config.questionCount ? 'Finalizar Evaluación' : 'Siguiente Dimensión'}
           <i className="ph-bold ph-arrow-right"></i>
         </button>
       </div>

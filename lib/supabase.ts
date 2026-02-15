@@ -1,9 +1,9 @@
+
 import { createClient } from '@supabase/supabase-js';
 
 const supabaseUrl = process.env.SUPABASE_URL;
 const supabaseAnonKey = process.env.SUPABASE_ANON_KEY;
 
-// Estado persistente del modo local
 const isExplicitLocal = localStorage.getItem('entrevistia_force_local') === 'true';
 
 const isValidUrl = (url: string | undefined): boolean => {
@@ -16,10 +16,6 @@ const isValidUrl = (url: string | undefined): boolean => {
   }
 };
 
-/**
- * Cliente Interno 100% Mockeado
- * Replica exactamente la API de Supabase para que el resto de la app no note la diferencia
- */
 const createInternalClient = () => {
   console.warn("⚠️ EntrevistIA: Operando en Modo Local (Base de datos del navegador activa)");
   
@@ -80,9 +76,9 @@ const createInternalClient = () => {
             let data = JSON.parse(localStorage.getItem(`entrevistia_db_${table}`) || '[]');
             if (col && val) data = data.filter((item: any) => item[col] === val);
             data.sort((a: any, b: any) => {
-               const valA = a[orderCol] || 0;
-               const valB = b[orderCol] || 0;
-               return ascending ? (valA > valB ? 1 : -1) : (valA < valB ? 1 : -1);
+               const valA = new Date(a[orderCol] || 0).getTime();
+               const valB = new Date(b[orderCol] || 0).getTime();
+               return ascending ? valA - valB : valB - valA;
             });
             return Promise.resolve({ data, error: null });
           }
@@ -90,9 +86,9 @@ const createInternalClient = () => {
         order: (orderCol: string, { ascending }: any = {}) => {
           const data = JSON.parse(localStorage.getItem(`entrevistia_db_${table}`) || '[]');
           data.sort((a: any, b: any) => {
-            const valA = a[orderCol] || 0;
-            const valB = b[orderCol] || 0;
-            return ascending ? (valA > valB ? 1 : -1) : (valA < valB ? 1 : -1);
+            const valA = new Date(a[orderCol] || 0).getTime();
+            const valB = new Date(b[orderCol] || 0).getTime();
+            return ascending ? valA - valB : valB - valA;
           });
           return Promise.resolve({ data, error: null });
         }
@@ -119,7 +115,6 @@ const createInternalClient = () => {
 
 let client: any = null;
 
-// Solo intentamos conectar a Supabase si hay config válida Y no estamos forzando modo local
 if (!isExplicitLocal && isValidUrl(supabaseUrl) && supabaseAnonKey && supabaseAnonKey !== "undefined") {
   try {
     client = createClient(supabaseUrl!, supabaseAnonKey);

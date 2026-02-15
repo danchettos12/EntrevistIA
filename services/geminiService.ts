@@ -1,3 +1,4 @@
+
 import { GoogleGenAI, Type } from "@google/genai";
 import { SessionConfig, QuestionFeedback } from "../types.ts";
 
@@ -53,7 +54,7 @@ export const transcribeAudio = async (base64Audio: string, mimeType: string): Pr
               }
             },
             {
-              text: "Transcribe exactamente lo que se dice en este audio de entrevista profesional en español. Solo devuelve el texto transcrito."
+              text: "Transcribe exactamente lo que se dice en este audio de entrevista profesional en español. Devuelve solo el texto de la transcripción, sin comentarios adicionales."
             }
           ]
         }
@@ -71,14 +72,14 @@ export const generateInterviewQuestion = async (config: SessionConfig, previousQ
   const prompt = `Actúa como un reclutador senior para el cargo: ${config.role}. 
   Rigor: ${config.pressure}/100. Enfoque Conductual: ${config.focus}/100.
   Preguntas anteriores: ${previousQuestions.join(', ') || 'ninguna'}.
-  Genera UNA pregunta desafiante en ESPAÑOL. Solo la pregunta.`;
+  Genera UNA pregunta desafiante en ESPAÑOL que evalúe competencias críticas para este nivel. Solo devuelve el texto de la pregunta.`;
 
   try {
     const response = await ai.models.generateContent({
       model: 'gemini-3-flash-preview',
       contents: prompt
     });
-    return response.text || "¿Podría describir un logro del que se sienta especialmente orgulloso?";
+    return response.text?.trim() || "¿Podría describir un logro del que se sienta especialmente orgulloso?";
   } catch (error) {
     return "¿Cómo manejas situaciones de alta presión en el trabajo?";
   }
@@ -90,22 +91,30 @@ export const analyzeQuestionResponse = async (
   config: SessionConfig
 ): Promise<QuestionFeedback> => {
   const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || "" });
-  const prompt = `Analiza esta respuesta de entrevista en ESPAÑOL:
+  const prompt = `Analiza esta respuesta de entrevista en ESPAÑOL para el cargo de ${config.role}:
   Pregunta: "${question}"
   Respuesta del Candidato: "${userResponse}"
-  Cargo Objetivo: ${config.role}
-  Analiza estructura STAR, tono y asertividad. Proporciona una "Respuesta Ideal" senior.`;
+  
+  Instrucciones de análisis:
+  1. Identifica componentes STAR (Situación, Tarea, Acción, Resultado).
+  2. Evalúa tono y asertividad.
+  3. Proporciona una "Respuesta Ideal" (Senior Rewrite) que use la misma experiencia del usuario pero con lenguaje ejecutivo de alto impacto.`;
 
-  const response = await ai.models.generateContent({
-    model: 'gemini-3-pro-preview',
-    contents: prompt,
-    config: {
-      responseMimeType: "application/json",
-      responseSchema: FEEDBACK_SCHEMA
-    }
-  });
+  try {
+    const response = await ai.models.generateContent({
+      model: 'gemini-3-pro-preview',
+      contents: prompt,
+      config: {
+        responseMimeType: "application/json",
+        responseSchema: FEEDBACK_SCHEMA
+      }
+    });
 
-  return JSON.parse(response.text || '{}');
+    return JSON.parse(response.text || '{}');
+  } catch (error) {
+    console.error("Analysis error:", error);
+    throw error;
+  }
 };
 
 export const generateSessionSummary = async (
@@ -114,35 +123,43 @@ export const generateSessionSummary = async (
 ): Promise<{ overallSummary: string, fillerWordAnalysis: string, mistakes: string[], overallScore: number }> => {
   const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || "" });
   
-  const prompt = `Genera un resumen ejecutivo del desempeño de la entrevista para el cargo de: ${config.role}.
+  const prompt = `Genera un resumen ejecutivo del desempeño global de esta sesión de entrevista para el cargo de: ${config.role}.
   
-  Basado en la siguiente transcripción de la sesión:
-  ${questions.map(q => `P: ${q.question}\nR: ${q.originalResponse}`).join('\n\n')}
+  Datos de la sesión:
+  ${questions.map(q => `P: ${q.question}\nR: ${q.originalResponse}\nScore STAR: ${q.starAnalysis.score}`).join('\n\n')}
 
   Instrucciones:
-  1. Analiza muletillas y fluidez.
-  2. Identifica errores críticos en la narrativa profesional.
-  3. Califica el desempeño general de 0 a 100.
-  
-  Devuelve la respuesta estrictamente en formato JSON.`;
+  - Analiza el uso de muletillas y la fluidez narrativa.
+  - Identifica los 3 errores más críticos cometidos.
+  - Calcula un puntaje de 0 a 100 basado en la calidad técnica y comunicativa.`;
 
-  const response = await ai.models.generateContent({
-    model: 'gemini-3-pro-preview',
-    contents: prompt,
-    config: {
-      responseMimeType: "application/json",
-      responseSchema: {
-        type: Type.OBJECT,
-        properties: {
-          overallSummary: { type: Type.STRING },
-          fillerWordAnalysis: { type: Type.STRING },
-          mistakes: { type: Type.ARRAY, items: { type: Type.STRING } },
-          overallScore: { type: Type.NUMBER }
-        },
-        required: ['overallSummary', 'fillerWordAnalysis', 'mistakes', 'overallScore']
+  try {
+    const response = await ai.models.generateContent({
+      model: 'gemini-3-pro-preview',
+      contents: prompt,
+      config: {
+        responseMimeType: "application/json",
+        responseSchema: {
+          type: Type.OBJECT,
+          properties: {
+            overallSummary: { type: Type.STRING },
+            fillerWordAnalysis: { type: Type.STRING },
+            mistakes: { type: Type.ARRAY, items: { type: Type.STRING } },
+            overallScore: { type: Type.NUMBER }
+          },
+          required: ['overallSummary', 'fillerWordAnalysis', 'mistakes', 'overallScore']
+        }
       }
-    }
-  });
+    });
 
-  return JSON.parse(response.text || '{}');
+    return JSON.parse(response.text || '{}');
+  } catch (error) {
+    console.error("Summary error:", error);
+    return {
+      overallSummary: "Error generando el resumen ejecutivo.",
+      fillerWordAnalysis: "No se pudo realizar el análisis de fluidez.",
+      mistakes: ["Error de comunicación con el motor de IA."],
+      overallScore: 0
+    };
+  }
 };
