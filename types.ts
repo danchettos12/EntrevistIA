@@ -72,3 +72,5 @@ export enum AppView {
   FEEDBACK = 'FEEDBACK',
   DOCUMENTATION = 'DOCUMENTATION'
 }
+
+export type DocumentationTopic = 'star' | 'communication' | 'questions' | 'psychology' | 'rhythm';

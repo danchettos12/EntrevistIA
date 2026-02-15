@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { AppView, SessionConfig, SessionRecord, User } from './types.ts';
+import { AppView, SessionConfig, SessionRecord, User, DocumentationTopic } from './types.ts';
 import { DEFAULT_CONFIG } from './constants.ts';
 import { supabase } from './lib/supabase.ts';
 import { getUserSessions, saveSession } from './services/databaseService.ts';
@@ -20,6 +20,7 @@ const App: React.FC = () => {
   const [currentConfig, setCurrentConfig] = useState<SessionConfig>(DEFAULT_CONFIG);
   const [activeSession, setActiveSession] = useState<SessionRecord | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [activeDocTopic, setActiveDocTopic] = useState<DocumentationTopic>('star');
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event: string, session: any) => {
@@ -72,17 +73,19 @@ const App: React.FC = () => {
   };
 
   const handleFinishSession = async (record: SessionRecord) => {
-    // Intentamos guardar en la base de datos/localstorage
     const saved = await saveSession(record);
     if (saved) {
-      // Si se guardó, usamos el registro con ID real y lo añadimos al historial
       setSessions(prev => [saved, ...prev]);
       setActiveSession(saved);
     } else {
-      // Fallback si falla el guardado, pero mostramos el feedback de la sesión actual
       setActiveSession(record);
     }
     setView(AppView.FEEDBACK);
+  };
+
+  const handleOpenDoc = (topic: DocumentationTopic) => {
+    setActiveDocTopic(topic);
+    setView(AppView.DOCUMENTATION);
   };
 
   if (isLoading) {
@@ -111,6 +114,7 @@ const App: React.FC = () => {
             </div>
             <nav className="flex gap-6 items-center">
               <button onClick={() => setView(AppView.DASHBOARD)} className="text-[10px] font-bold uppercase tracking-widest text-slate-400 hover:text-white transition-colors">Inicio</button>
+              <button onClick={() => handleOpenDoc('star')} className="text-[10px] font-bold uppercase tracking-widest text-slate-400 hover:text-white transition-colors">Guías</button>
               <button onClick={handleLogout} className="text-[10px] font-bold text-slate-500 uppercase tracking-widest hover:text-red-400 transition-colors">Salir</button>
             </nav>
           </div>
@@ -134,6 +138,7 @@ const App: React.FC = () => {
             sessions={sessions} 
             onStart={() => setView(AppView.SETUP)} 
             onViewSession={(s) => { setActiveSession(s); setView(AppView.FEEDBACK); }} 
+            onNavigateDoc={handleOpenDoc}
           />
         )}
         
@@ -143,7 +148,7 @@ const App: React.FC = () => {
         
         {safeView === AppView.FEEDBACK && activeSession && <FeedbackView session={activeSession} onClose={() => setView(AppView.DASHBOARD)} />}
         
-        {safeView === AppView.DOCUMENTATION && <DocumentationView onBack={() => setView(AppView.DASHBOARD)} />}
+        {safeView === AppView.DOCUMENTATION && <DocumentationView initialTopic={activeDocTopic} onBack={() => setView(AppView.DASHBOARD)} />}
       </main>
     </div>
   );

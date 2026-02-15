@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { SessionRecord, User } from '../types.ts';
+import { SessionRecord, User, DocumentationTopic } from '../types.ts';
 import { XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area } from 'recharts';
 
 interface DashboardProps {
@@ -8,9 +8,10 @@ interface DashboardProps {
   sessions: SessionRecord[];
   onStart: () => void;
   onViewSession: (session: SessionRecord) => void;
+  onNavigateDoc: (topic: DocumentationTopic) => void;
 }
 
-const Dashboard: React.FC<DashboardProps> = ({ user, sessions, onStart, onViewSession }) => {
+const Dashboard: React.FC<DashboardProps> = ({ user, sessions, onStart, onViewSession, onNavigateDoc }) => {
   const [activeTab, setActiveTab] = useState<'resumen' | 'historial' | 'recursos'>('resumen');
 
   const chartData = [...sessions].reverse().map((s, idx) => ({
@@ -24,30 +25,34 @@ const Dashboard: React.FC<DashboardProps> = ({ user, sessions, onStart, onViewSe
 
   const getInitials = (name: string) => name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
 
-  const GUIDES = [
+  const GUIDES: { title: string; icon: string; color: string; desc: string; topic: DocumentationTopic }[] = [
     {
       title: "Método STAR",
       icon: "ph-star-four",
       color: "text-blue-400",
-      desc: "Aprende a estructurar tus logros: Situación, Tarea, Acción y Resultado. Una forma clara de contar tus éxitos."
+      desc: "Aprende a estructurar tus logros: Situación, Tarea, Acción y Resultado. Una forma clara de contar tus éxitos.",
+      topic: 'star'
     },
     {
       title: "Comunicación Clara",
       icon: "ph-chat-teardrop-text",
       color: "text-emerald-400",
-      desc: "Mantén un tono profesional pero natural. La clave es la autenticidad y la claridad al expresarte."
+      desc: "Mantén un tono profesional pero natural. La clave es la autenticidad y la claridad al expresarte.",
+      topic: 'communication'
     },
     {
-      title: "Preparación de Dudas",
+      title: "Preguntas de Impacto",
       icon: "ph-question",
       color: "text-purple-400",
-      desc: "Prepara preguntas interesantes para la empresa. Demuestra tu curiosidad y ganas de aportar."
+      desc: "Prepara respuestas para las preguntas más difíciles y aprende a preguntar tú también.",
+      topic: 'questions'
     },
     {
       title: "Pausas y Ritmo",
       icon: "ph-hourglass",
       color: "text-amber-400",
-      desc: "No tengas prisa por responder. Una pequeña pausa ayuda a organizar tus ideas antes de hablar."
+      desc: "No tengas prisa por responder. Una pequeña pausa ayuda a organizar tus ideas antes de hablar.",
+      topic: 'rhythm'
     }
   ];
 
@@ -74,7 +79,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, sessions, onStart, onViewSe
               <i className="ph-bold ph-clock-counter-clockwise"></i> Actividad
             </button>
             <button onClick={() => setActiveTab('recursos')} className={`flex-1 rounded-2xl flex items-center justify-center gap-3 font-semibold uppercase text-[10px] tracking-widest transition-all ${activeTab === 'recursos' ? 'bg-white text-slate-900' : 'text-slate-400 hover:text-white hover:bg-white/5'}`}>
-              <i className="ph-bold ph-notebook"></i> Consejos
+              <i className="ph-bold ph-notebook"></i> Guías
             </button>
         </div>
       </div>
@@ -181,17 +186,24 @@ const Dashboard: React.FC<DashboardProps> = ({ user, sessions, onStart, onViewSe
         <div className="animate-fadeIn space-y-8">
            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
              {GUIDES.map((guide, idx) => (
-               <div key={idx} className="glass p-8 rounded-3xl border border-white/5 hover:border-white/10 transition-all group shadow-xl">
+               <button 
+                 key={idx} 
+                 onClick={() => onNavigateDoc(guide.topic)}
+                 className="glass p-8 rounded-3xl border border-white/5 hover:border-blue-500/30 transition-all group shadow-xl text-left"
+               >
                  <div className="flex items-start gap-6">
                    <div className={`w-12 h-12 rounded-xl bg-white/5 flex items-center justify-center group-hover:scale-110 transition-transform`}>
                      <i className={`ph-bold ${guide.icon} text-xl ${guide.color}`}></i>
                    </div>
                    <div className="space-y-2 flex-1">
-                     <h4 className="text-white font-bold text-lg">{guide.title}</h4>
+                     <h4 className="text-white font-bold text-lg flex items-center justify-between">
+                       {guide.title}
+                       <i className="ph ph-arrow-up-right text-xs opacity-0 group-hover:opacity-100 transition-opacity"></i>
+                     </h4>
                      <p className="text-slate-400 text-sm leading-relaxed">{guide.desc}</p>
                    </div>
                  </div>
-               </div>
+               </button>
              ))}
            </div>
         </div>
