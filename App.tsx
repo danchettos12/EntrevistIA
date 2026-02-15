@@ -71,14 +71,6 @@ const App: React.FC = () => {
     }
     setUser(null);
     setView(AppView.LANDING);
-    if (supabase.isMock) {
-        window.location.reload();
-    }
-  };
-
-  const handleResetMode = () => {
-    localStorage.removeItem('entrevistia_force_local');
-    window.location.reload();
   };
 
   const handleFinishSession = async (record: SessionRecord) => {
@@ -119,28 +111,18 @@ const App: React.FC = () => {
       {user && (
         <header className="fixed top-6 left-1/2 -translate-x-1/2 z-[100] w-[95%] max-w-7xl print:hidden">
           <div className="glass px-6 py-3 rounded-xl flex items-center justify-between shadow-2xl border-white/5 relative overflow-hidden">
-            {supabase?.isMock && (
-              <div className="absolute top-0 left-0 h-0.5 w-full bg-amber-500 animate-pulse"></div>
-            )}
-            
             <div className="flex items-center gap-3 cursor-pointer" onClick={() => setView(AppView.DASHBOARD)}>
               <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center text-white font-bold text-lg">
                 <i className="ph-bold ph-briefcase"></i>
               </div>
               <div className="flex flex-col">
                 <span className="text-lg font-bold tracking-tighter text-white uppercase leading-none">EntrevistIA</span>
-                {supabase?.isMock && <span className="text-[7px] font-bold text-amber-500 uppercase tracking-widest mt-1">Modo Local</span>}
               </div>
             </div>
             
             <nav className="flex gap-6 items-center">
               <button onClick={() => setView(AppView.DASHBOARD)} className={`text-[10px] font-bold uppercase tracking-widest ${view === AppView.DASHBOARD ? 'text-blue-400' : 'text-slate-400 hover:text-white'}`}>Panel</button>
               <button onClick={() => setView(AppView.DOCUMENTATION)} className={`text-[10px] font-bold uppercase tracking-widest ${view === AppView.DOCUMENTATION ? 'text-blue-400' : 'text-slate-400 hover:text-white'}`}>Manual</button>
-              
-              {supabase?.isMock && localStorage.getItem('entrevistia_force_local') === 'true' && (
-                <button onClick={handleResetMode} className="text-[10px] font-bold text-amber-500 uppercase tracking-widest hover:text-amber-400 transition-colors bg-amber-500/5 px-4 py-2 rounded-lg border border-amber-500/10">Reintentar Nube</button>
-              )}
-
               <button onClick={handleLogout} className="text-[10px] font-bold text-slate-500 uppercase tracking-widest hover:text-red-400 transition-colors bg-white/5 px-4 py-2 rounded-lg border border-white/5">Cerrar Sesión</button>
             </nav>
           </div>

@@ -7,20 +7,6 @@ interface LandingViewProps {
 }
 
 const LandingView: React.FC<LandingViewProps> = ({ onGetStarted, onLogin }) => {
-  const handleTryDemo = () => {
-    localStorage.setItem('entrevistia_force_local', 'true');
-    // Create a temporary demo user if none exists
-    if (!localStorage.getItem('entrevistia_mock_user')) {
-      const demoUser = {
-        id: 'demo_user',
-        email: 'demo@entrevistia.ai',
-        user_metadata: { full_name: 'Candidato Demo' }
-      };
-      localStorage.setItem('entrevistia_mock_user', JSON.stringify(demoUser));
-    }
-    window.location.reload();
-  };
-
   return (
     <div className="min-h-screen flex flex-col justify-center animate-fadeIn py-20 overflow-hidden">
       <section className="relative text-center space-y-12 px-4">
@@ -51,16 +37,6 @@ const LandingView: React.FC<LandingViewProps> = ({ onGetStarted, onLogin }) => {
             className="w-full sm:w-auto px-12 py-6 rounded-2xl glass text-white font-bold hover:bg-white/10 transition-all uppercase text-sm tracking-widest"
           >
             Acceso Miembros
-          </button>
-        </div>
-
-        <div className="pt-10">
-          <button 
-            onClick={handleTryDemo}
-            className="text-[10px] font-bold text-slate-500 hover:text-blue-400 uppercase tracking-[0.3em] transition-colors flex items-center gap-2 mx-auto"
-          >
-            <i className="ph-bold ph-lightning"></i>
-            Probar Demo Instantánea (Sin Registro)
           </button>
         </div>
       </section>

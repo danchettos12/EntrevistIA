@@ -16,10 +16,12 @@ const AuthView: React.FC<AuthViewProps> = ({ onBack, initialMode = 'login' }) =>
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
 
-  const isMock = supabase?.isMock;
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!supabase) {
+      setError('El servicio de autenticación no está configurado correctamente.');
+      return;
+    }
     setError('');
     setLoading(true);
 
@@ -27,8 +29,6 @@ const AuthView: React.FC<AuthViewProps> = ({ onBack, initialMode = 'login' }) =>
       if (isLogin) {
         const { error: loginError } = await supabase.auth.signInWithPassword({ email, password });
         if (loginError) throw loginError;
-        // If it's mock, we might need a manual reload to trigger the app's auth listener properly
-        if (isMock) window.location.reload();
       } else {
         const { error: signUpError } = await supabase.auth.signUp({
           email,
@@ -36,29 +36,17 @@ const AuthView: React.FC<AuthViewProps> = ({ onBack, initialMode = 'login' }) =>
           options: { data: { full_name: name } }
         });
         if (signUpError) throw signUpError;
-        if (isMock) {
-          window.location.reload();
-        } else {
-          setError('Registro exitoso. Verifique su correo para confirmar su cuenta.');
-        }
+        setError('Registro exitoso. Verifique su correo para confirmar su cuenta.');
       }
     } catch (err: any) {
       console.error("Auth Error Trace:", err);
       let msg = 'Error de conexión con el servidor.';
       if (err.message) msg = err.message;
       if (err.status === 400) msg = 'Credenciales inválidas o formato incorrecto.';
-      if (err.name === 'AuthRetryableFetchError' || err.message?.includes('fetch')) {
-        msg = 'Error de Red: No se puede conectar con el servidor de autenticación. Verifique su conexión o use el Modo Local.';
-      }
       setError(msg);
     } finally {
       setLoading(false);
     }
-  };
-
-  const handleEnableLocalMode = () => {
-    localStorage.setItem('entrevistia_force_local', 'true');
-    window.location.reload();
   };
 
   return (
@@ -69,16 +57,10 @@ const AuthView: React.FC<AuthViewProps> = ({ onBack, initialMode = 'login' }) =>
         </button>
 
         <div className="glass p-10 rounded-[2.5rem] shadow-2xl border-white/10 overflow-hidden relative">
-          {isMock && (
-            <div className="absolute top-0 left-0 w-full bg-amber-500/20 py-1.5 text-[8px] font-bold text-amber-400 text-center uppercase tracking-[0.2em] border-b border-amber-500/20">
-              MODO LOCAL ACTIVO (ALMACENAMIENTO OFFLINE)
-            </div>
-          )}
-          
           <div className="text-center mb-10">
             <h1 className="text-2xl font-bold text-white uppercase tracking-tight">{isLogin ? 'Bienvenido' : 'Crear Perfil'}</h1>
             <p className="text-[10px] text-slate-500 uppercase tracking-widest mt-2 font-medium">
-              {isMock ? 'Tus datos se guardarán solo en este navegador' : 'Accede a tu cuenta sincronizada'}
+              Accede a tu cuenta sincronizada
             </p>
           </div>
 
@@ -117,19 +99,10 @@ const AuthView: React.FC<AuthViewProps> = ({ onBack, initialMode = 'login' }) =>
             </div>
             
             {error && (
-              <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-2xl space-y-4 animate-fadeIn">
+              <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-2xl animate-fadeIn">
                 <p className="text-[11px] text-red-400 text-center font-semibold leading-relaxed">
                   <i className="ph-bold ph-warning-circle mr-1"></i> {error}
                 </p>
-                {!isMock && (
-                  <button 
-                    type="button"
-                    onClick={handleEnableLocalMode}
-                    className="w-full py-3 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-[9px] font-bold text-white uppercase tracking-widest transition-all"
-                  >
-                    Usar Modo Local (Guardar en Navegador)
-                  </button>
-                )}
               </div>
             )}
 
