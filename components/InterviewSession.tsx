@@ -92,19 +92,25 @@ const InterviewSession: React.FC<InterviewSessionProps> = ({ config, userId, onF
   };
 
   const handleTranscription = async (blob: Blob) => {
-    setTranscribing(true);
-    try {
-      const arrayBuffer = await blob.arrayBuffer();
-      const base64Audio = encodeToBase64(arrayBuffer);
-      const transcription = await transcribeAudio(base64Audio, blob.type || 'audio/webm');
-      if (transcription) {
-        setResponse(prev => prev + (prev ? " " : "") + transcription);
+    const promise = (async () => {
+      setTranscribing(true);
+      try {
+        const arrayBuffer = await blob.arrayBuffer();
+        const base64Audio = encodeToBase64(arrayBuffer);
+        const transcription = await transcribeAudio(base64Audio, blob.type || 'audio/webm');
+        if (transcription) {
+          setResponse(prev => prev + (prev ? " " : "") + transcription);
+        }
+      } catch (err) {
+        console.error("Error en transcripción:", err);
+      } finally {
+        setTranscribing(false);
+        transcriptionPromiseRef.current = null;
       }
-    } catch (err) {
-      console.error("Error en transcripción:", err);
-    } finally {
-      setTranscribing(false);
-    }
+    })();
+    
+    transcriptionPromiseRef.current = promise;
+    return promise;
   };
 
   const startRecording = async () => {
@@ -134,8 +140,14 @@ const InterviewSession: React.FC<InterviewSessionProps> = ({ config, userId, onF
   const handleNext = async () => {
     if (processing) return;
     setProcessing(true);
+    
     if (timerRef.current) clearInterval(timerRef.current);
     if (isRecording) stopRecording();
+
+    // Esperar a que cualquier transcripción en curso termine
+    if (transcriptionPromiseRef.current) {
+      await transcriptionPromiseRef.current;
+    }
 
     try {
       const finalRes = response.trim() || "Respuesta breve del candidato.";
