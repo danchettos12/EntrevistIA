@@ -57,6 +57,14 @@ const PRESETS = [
   }
 ];
 
+const QUESTION_OPTIONS = [3, 5, 8, 10];
+const TIME_OPTIONS = [
+  { label: '1 min', value: 60 },
+  { label: '2 min', value: 120 },
+  { label: '3 min', value: 180 },
+  { label: '5 min', value: 300 }
+];
+
 const SetupForm: React.FC<SetupFormProps> = ({ initialRole, onStart, onBack }) => {
   const [config, setConfig] = useState<SessionConfig>({
       ...DEFAULT_CONFIG,
@@ -83,6 +91,7 @@ const SetupForm: React.FC<SetupFormProps> = ({ initialRole, onStart, onBack }) =
       </div>
       
       <div className="p-10 space-y-10">
+        {/* Presets */}
         <div className="space-y-4">
           <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest">Selecciona un área de interés</label>
           <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
@@ -114,6 +123,7 @@ const SetupForm: React.FC<SetupFormProps> = ({ initialRole, onStart, onBack }) =
 
         <div className="h-px bg-white/5"></div>
 
+        {/* Role Input */}
         <div className="space-y-3">
           <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest">¿Para qué puesto te estás preparando?</label>
           <div className="relative">
@@ -130,6 +140,48 @@ const SetupForm: React.FC<SetupFormProps> = ({ initialRole, onStart, onBack }) =
           </div>
         </div>
 
+        {/* Count and Time Selection */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
+          <div className="space-y-4">
+            <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest">Cantidad de Preguntas</label>
+            <div className="flex gap-2">
+              {QUESTION_OPTIONS.map((num) => (
+                <button
+                  key={num}
+                  onClick={() => setConfig({ ...config, questionCount: num })}
+                  className={`flex-1 py-3 rounded-xl border transition-all font-bold text-xs ${
+                    config.questionCount === num 
+                      ? 'bg-blue-600 border-blue-400 text-white' 
+                      : 'bg-white/5 border-white/5 text-slate-400 hover:border-white/20'
+                  }`}
+                >
+                  {num}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="space-y-4">
+            <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest">Tiempo por Respuesta</label>
+            <div className="flex gap-2">
+              {TIME_OPTIONS.map((opt) => (
+                <button
+                  key={opt.value}
+                  onClick={() => setConfig({ ...config, timeLimit: opt.value })}
+                  className={`flex-1 py-3 rounded-xl border transition-all font-bold text-[10px] uppercase tracking-tighter ${
+                    config.timeLimit === opt.value 
+                      ? 'bg-blue-600 border-blue-400 text-white' 
+                      : 'bg-white/5 border-white/5 text-slate-400 hover:border-white/20'
+                  }`}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Sliders */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
           <div className="space-y-6">
             <div className="flex justify-between items-center">
@@ -176,6 +228,7 @@ const SetupForm: React.FC<SetupFormProps> = ({ initialRole, onStart, onBack }) =
           </div>
         </div>
 
+        {/* Footer Actions */}
         <div className="flex gap-4 pt-8 border-t border-white/5">
           <button 
             onClick={onBack}
