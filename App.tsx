@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { AppView, SessionConfig, SessionRecord, User } from './types.ts';
 import { DEFAULT_CONFIG } from './constants.ts';
-import { supabase, setLocalMode } from './lib/supabase.ts';
+import { supabase } from './lib/supabase.ts';
 import { getUserSessions, saveSession } from './services/databaseService.ts';
 import Dashboard from './components/Dashboard.tsx';
 import SetupForm from './components/SetupForm.tsx';
