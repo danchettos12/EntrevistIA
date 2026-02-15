@@ -18,10 +18,6 @@ const AuthView: React.FC<AuthViewProps> = ({ onBack, initialMode = 'login' }) =>
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!supabase) {
-      setError('El servicio de autenticación no está configurado correctamente.');
-      return;
-    }
     setError('');
     setLoading(true);
 
@@ -29,6 +25,8 @@ const AuthView: React.FC<AuthViewProps> = ({ onBack, initialMode = 'login' }) =>
       if (isLogin) {
         const { error: loginError } = await supabase.auth.signInWithPassword({ email, password });
         if (loginError) throw loginError;
+        // Si el cliente es interno, forzamos recarga para sincronizar estado global
+        if (supabase.isInternal) window.location.reload();
       } else {
         const { error: signUpError } = await supabase.auth.signUp({
           email,
@@ -36,14 +34,17 @@ const AuthView: React.FC<AuthViewProps> = ({ onBack, initialMode = 'login' }) =>
           options: { data: { full_name: name } }
         });
         if (signUpError) throw signUpError;
-        setError('Registro exitoso. Verifique su correo para confirmar su cuenta.');
+        if (supabase.isInternal) {
+          window.location.reload();
+        } else {
+          setError('Registro completado. Verifique su correo electrónico.');
+        }
       }
     } catch (err: any) {
-      console.error("Auth Error Trace:", err);
-      let msg = 'Error de conexión con el servidor.';
-      if (err.message) msg = err.message;
-      if (err.status === 400) msg = 'Credenciales inválidas o formato incorrecto.';
-      setError(msg);
+      // Si hay un error de red y no estamos en cliente interno, algo salió mal con la URL de Supabase
+      // pero el cliente ya debería haber caído a interno si la URL era inválida.
+      // Aquí manejamos errores de credenciales o de servidor.
+      setError(err.message || 'Error al procesar la solicitud. Intente de nuevo.');
     } finally {
       setLoading(false);
     }
@@ -60,48 +61,42 @@ const AuthView: React.FC<AuthViewProps> = ({ onBack, initialMode = 'login' }) =>
           <div className="text-center mb-10">
             <h1 className="text-2xl font-bold text-white uppercase tracking-tight">{isLogin ? 'Bienvenido' : 'Crear Perfil'}</h1>
             <p className="text-[10px] text-slate-500 uppercase tracking-widest mt-2 font-medium">
-              Accede a tu cuenta sincronizada
+              Gestione su entrenamiento profesional
             </p>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
             {!isLogin && (
-              <div className="space-y-1">
-                <input 
-                  type="text" 
-                  value={name} 
-                  onChange={(e) => setName(e.target.value)} 
-                  className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-white outline-none focus:border-blue-500 focus:bg-white/10 transition-all text-sm" 
-                  placeholder="Tu nombre completo" 
-                  required 
-                />
-              </div>
+              <input 
+                type="text" 
+                value={name} 
+                onChange={(e) => setName(e.target.value)} 
+                className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-white outline-none focus:border-blue-500 transition-all text-sm" 
+                placeholder="Nombre completo" 
+                required 
+              />
             )}
-            <div className="space-y-1">
-              <input 
-                type="email" 
-                value={email} 
-                onChange={(e) => setEmail(e.target.value)} 
-                className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-white outline-none focus:border-blue-500 focus:bg-white/10 transition-all text-sm" 
-                placeholder="Correo electrónico" 
-                required 
-              />
-            </div>
-            <div className="space-y-1">
-              <input 
-                type="password" 
-                value={password} 
-                onChange={(e) => setPassword(e.target.value)} 
-                className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-white outline-none focus:border-blue-500 focus:bg-white/10 transition-all text-sm" 
-                placeholder="Contraseña" 
-                required 
-              />
-            </div>
+            <input 
+              type="email" 
+              value={email} 
+              onChange={(e) => setEmail(e.target.value)} 
+              className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-white outline-none focus:border-blue-500 transition-all text-sm" 
+              placeholder="Correo electrónico" 
+              required 
+            />
+            <input 
+              type="password" 
+              value={password} 
+              onChange={(e) => setPassword(e.target.value)} 
+              className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-white outline-none focus:border-blue-500 transition-all text-sm" 
+              placeholder="Contraseña" 
+              required 
+            />
             
             {error && (
               <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-2xl animate-fadeIn">
                 <p className="text-[11px] text-red-400 text-center font-semibold leading-relaxed">
-                  <i className="ph-bold ph-warning-circle mr-1"></i> {error}
+                  {error}
                 </p>
               </div>
             )}
@@ -111,7 +106,7 @@ const AuthView: React.FC<AuthViewProps> = ({ onBack, initialMode = 'login' }) =>
               disabled={loading} 
               className="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-5 rounded-2xl transition-all uppercase text-[10px] tracking-[0.2em] disabled:opacity-50 shadow-xl shadow-blue-900/20 mt-4"
             >
-              {loading ? 'Validando...' : isLogin ? 'Entrar al Panel' : 'Registrar Perfil'}
+              {loading ? 'Procesando...' : isLogin ? 'Entrar' : 'Registrarse'}
             </button>
           </form>
 
@@ -120,7 +115,7 @@ const AuthView: React.FC<AuthViewProps> = ({ onBack, initialMode = 'login' }) =>
               onClick={() => { setIsLogin(!isLogin); setError(''); }} 
               className="text-[9px] font-bold text-slate-500 hover:text-blue-400 uppercase tracking-widest transition-colors"
             >
-              {isLogin ? '¿No tienes cuenta? Crea una aquí' : '¿Ya tienes cuenta? Inicia sesión'}
+              {isLogin ? '¿No tiene cuenta? Regístrese' : '¿Ya tiene cuenta? Inicie sesión'}
             </button>
           </div>
         </div>

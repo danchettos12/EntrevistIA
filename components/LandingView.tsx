@@ -30,7 +30,7 @@ const LandingView: React.FC<LandingViewProps> = ({ onGetStarted, onLogin }) => {
             onClick={onGetStarted} 
             className="w-full sm:w-auto px-12 py-6 font-bold text-white bg-blue-600 rounded-2xl shadow-2xl shadow-blue-900/40 hover:bg-blue-500 hover:-translate-y-1 transition-all text-sm uppercase tracking-widest"
           >
-            Empezar Gratis
+            Empezar Ahora
           </button>
           <button 
             onClick={onLogin} 
