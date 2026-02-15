@@ -64,7 +64,7 @@ const createInternalClient = () => {
       }
     },
     from: (table: string) => ({
-      select: (columns?: string) => ({
+      select: (_columns?: string) => ({
         eq: (col: string, val: any) => ({
           order: (orderCol: string, { ascending }: any = {}) => {
             let data = JSON.parse(localStorage.getItem(`entrevistia_db_${table}`) || '[]');

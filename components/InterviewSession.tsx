@@ -188,6 +188,14 @@ const InterviewSession: React.FC<InterviewSessionProps> = ({ config, userId, onF
             {processing ? 'Un momento mientras generamos tu feedback personalizado.' : 'Personalizando la experiencia según tu perfil.'}
           </p>
         </div>
+        {!processing && loading && showForceBtn && (
+          <button 
+            onClick={forceStart}
+            className="mt-4 px-6 py-2 bg-white/5 border border-white/10 text-slate-400 hover:text-white rounded-full text-[10px] font-bold uppercase tracking-widest transition-all"
+          >
+            ¿Tarda demasiado? Iniciar pregunta fija
+          </button>
+        )}
       </div>
     );
   }

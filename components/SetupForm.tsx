@@ -65,12 +65,6 @@ const SetupForm: React.FC<SetupFormProps> = ({ initialRole, onStart, onBack }) =
 
   const [activePreset, setActivePreset] = useState<string | null>(null);
 
-  const formatTime = (seconds: number) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins}:${secs.toString().padStart(2, '0')} min`;
-  };
-
   const applyPreset = (preset: typeof PRESETS[0]) => {
     setActivePreset(preset.id);
     setConfig({
