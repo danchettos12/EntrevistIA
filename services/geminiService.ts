@@ -116,10 +116,17 @@ export const generateSessionSummary = async (
   const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || "" });
   const transcript = questions.map(q => `P: ${q.question}\nR: ${q.originalResponse}`).join('\n\n');
   
-  const prompt = `Genera un resumen ejecutivo del desempeño de la entrevista para: ${config.role}.
-  Analiza muletillas, fluidez y errores críticos.
-  Califica de 0 a 100.
-  Devuelve JSON.`;
+  const prompt = `Genera un resumen ejecutivo del desempeño de la entrevista para el cargo de: ${config.role}.
+  
+  Basado en la siguiente transcripción de la sesión:
+  ${transcript}
+
+  Instrucciones:
+  1. Analiza muletillas y fluidez.
+  2. Identifica errores críticos en la narrativa profesional.
+  3. Califica el desempeño general de 0 a 100.
+  
+  Devuelve la respuesta estrictamente en formato JSON.`;
 
   const response = await ai.models.generateContent({
     model: 'gemini-3-pro-preview',
