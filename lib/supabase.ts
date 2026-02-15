@@ -4,6 +4,9 @@ import { createClient } from '@supabase/supabase-js';
 const supabaseUrl = process.env.SUPABASE_URL;
 const supabaseAnonKey = process.env.SUPABASE_ANON_KEY;
 
+// Estado persistente del modo local
+const isExplicitLocal = localStorage.getItem('entrevistia_force_local') === 'true';
+
 const isValidUrl = (url: string | undefined): boolean => {
   if (!url || url === "" || url === "undefined" || url === "null" || url.includes("YOUR_")) return false;
   try {
@@ -15,9 +18,12 @@ const isValidUrl = (url: string | undefined): boolean => {
 };
 
 /**
- * Cliente Interno de Respaldo para Modo Local (PWA-Ready)
+ * Cliente Interno 100% Mockeado
+ * Replica exactamente la API de Supabase para que el resto de la app no note la diferencia
  */
 const createInternalClient = () => {
+  console.warn("⚠️ EntrevistIA: Operando en Modo Local (Base de datos del navegador activa)");
+  
   return {
     auth: {
       onAuthStateChange: (callback: any) => {
@@ -48,7 +54,7 @@ const createInternalClient = () => {
       signUp: async ({ email, password, options }: any) => {
         const users = JSON.parse(localStorage.getItem('entrevistia_db_users') || '[]');
         if (users.find((u: any) => u.email === email)) {
-          return { data: null, error: { message: 'Usuario ya existente en modo local.' } };
+          return { data: null, error: { message: 'Este correo ya está registrado localmente.' } };
         }
         const newUser = { 
           id: 'local_' + Math.random().toString(36).substr(2, 9), 
@@ -69,16 +75,26 @@ const createInternalClient = () => {
       }
     },
     from: (table: string) => ({
-      select: () => ({
+      select: (cols: string = '*') => ({
         eq: (col: string, val: any) => ({
-          order: () => {
+          order: (orderCol: string, { ascending }: any = {}) => {
             let data = JSON.parse(localStorage.getItem(`entrevistia_db_${table}`) || '[]');
             if (col && val) data = data.filter((item: any) => item[col] === val);
+            data.sort((a: any, b: any) => {
+               const valA = a[orderCol] || 0;
+               const valB = b[orderCol] || 0;
+               return ascending ? (valA > valB ? 1 : -1) : (valA < valB ? 1 : -1);
+            });
             return Promise.resolve({ data, error: null });
           }
         }),
-        order: () => {
+        order: (orderCol: string, { ascending }: any = {}) => {
           const data = JSON.parse(localStorage.getItem(`entrevistia_db_${table}`) || '[]');
+          data.sort((a: any, b: any) => {
+            const valA = a[orderCol] || 0;
+            const valB = b[orderCol] || 0;
+            return ascending ? (valA > valB ? 1 : -1) : (valA < valB ? 1 : -1);
+          });
           return Promise.resolve({ data, error: null });
         }
       }),
@@ -104,7 +120,8 @@ const createInternalClient = () => {
 
 let client: any = null;
 
-if (isValidUrl(supabaseUrl) && supabaseAnonKey && supabaseAnonKey !== "undefined") {
+// Solo intentamos conectar a Supabase si hay config válida Y no estamos forzando modo local
+if (!isExplicitLocal && isValidUrl(supabaseUrl) && supabaseAnonKey && supabaseAnonKey !== "undefined") {
   try {
     client = createClient(supabaseUrl!, supabaseAnonKey);
   } catch {
@@ -115,7 +132,21 @@ if (isValidUrl(supabaseUrl) && supabaseAnonKey && supabaseAnonKey !== "undefined
 }
 
 export const supabase = client;
-export const forceLocalMode = () => {
-  localStorage.setItem('entrevistia_force_local', 'true');
+
+export const setLocalMode = (enabled: boolean) => {
+  if (enabled) {
+    localStorage.setItem('entrevistia_force_local', 'true');
+    if (!localStorage.getItem('entrevistia_user_session')) {
+      const guestUser = {
+        id: 'guest_' + Math.random().toString(36).substr(2, 9),
+        email: 'invitado@entrevistia.local',
+        user_metadata: { full_name: 'Entrenador Invitado' }
+      };
+      localStorage.setItem('entrevistia_user_session', JSON.stringify(guestUser));
+    }
+  } else {
+    localStorage.removeItem('entrevistia_force_local');
+    localStorage.removeItem('entrevistia_user_session');
+  }
   window.location.reload();
 };
