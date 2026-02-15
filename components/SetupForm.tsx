@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
-import { SessionConfig } from '../types';
-import { DEFAULT_CONFIG } from '../constants';
+import { SessionConfig } from '../types.ts';
+import { DEFAULT_CONFIG } from '../constants.ts';
 
 interface SetupFormProps {
   initialRole?: string;
@@ -22,7 +22,7 @@ const SetupForm: React.FC<SetupFormProps> = ({ initialRole, onStart, onBack }) =
   };
 
   return (
-    <div className="max-w-2xl mx-auto glass rounded-3xl border border-white/10 overflow-hidden animate-slideUp shadow-2xl">
+    <div className="max-w-2xl mx-auto glass rounded-3xl border border-white/10 overflow-hidden animate-fadeIn shadow-2xl">
       <div className="bg-slate-800 p-8 text-white">
         <h2 className="text-xl font-bold uppercase tracking-widest italic">Parámetros de Evaluación</h2>
         <p className="text-slate-400 mt-1 text-xs font-medium uppercase tracking-widest">Defina el rigor de la simulación profesional.</p>

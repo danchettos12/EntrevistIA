@@ -10,6 +10,7 @@ import InterviewSession from './components/InterviewSession.tsx';
 import FeedbackView from './components/FeedbackView.tsx';
 import AuthView from './components/AuthView.tsx';
 import LandingView from './components/LandingView.tsx';
+import DocumentationView from './components/DocumentationView.tsx';
 
 const App: React.FC = () => {
   const [user, setUser] = useState<User | null>(null);
@@ -40,15 +41,13 @@ const App: React.FC = () => {
       } else {
         setUser(null);
         setSessions([]);
-        // Si no hay sesión, nos aseguramos de no quedar en una vista privada
-        if (view !== AppView.LANDING && view !== AppView.AUTH) {
+        if (view !== AppView.LANDING && view !== AppView.AUTH && view !== AppView.DOCUMENTATION) {
           setView(AppView.LANDING);
         }
       }
       setIsLoading(false);
     });
 
-    // Safety timeout to prevent infinite loading
     const timer = setTimeout(() => setIsLoading(false), 3000);
 
     return () => {
@@ -109,13 +108,13 @@ const App: React.FC = () => {
     );
   }
 
-  const isMarketingView = view === AppView.LANDING || view === AppView.AUTH;
+  const isMarketingView = view === AppView.LANDING || view === AppView.AUTH || view === AppView.DOCUMENTATION;
   const bgClass = isMarketingView ? 'mesh-bg' : 'dashboard-grid';
 
   return (
     <div className={`min-h-screen flex flex-col transition-colors duration-1000 ${bgClass}`}>
       {user && (
-        <header className="fixed top-6 left-1/2 -translate-x-1/2 z-[100] w-[95%] max-w-7xl">
+        <header className="fixed top-6 left-1/2 -translate-x-1/2 z-[100] w-[95%] max-w-7xl print:hidden">
           <div className="glass px-6 py-3 rounded-xl flex items-center justify-between shadow-2xl border-white/5 relative overflow-hidden">
             {supabase?.isMock && (
               <div className="absolute top-0 left-0 h-0.5 w-full bg-amber-500 animate-pulse"></div>
@@ -133,18 +132,20 @@ const App: React.FC = () => {
             
             <nav className="flex gap-6 items-center">
               <button onClick={() => setView(AppView.DASHBOARD)} className={`text-[10px] font-bold uppercase tracking-widest ${view === AppView.DASHBOARD ? 'text-blue-400' : 'text-slate-400 hover:text-white'}`}>Panel</button>
+              <button onClick={() => setView(AppView.DOCUMENTATION)} className={`text-[10px] font-bold uppercase tracking-widest ${view === AppView.DOCUMENTATION ? 'text-blue-400' : 'text-slate-400 hover:text-white'}`}>Manual</button>
               <button onClick={handleLogout} className="text-[10px] font-bold text-slate-500 uppercase tracking-widest hover:text-red-400 transition-colors bg-white/5 px-4 py-2 rounded-lg border border-white/5">Cerrar Sesión</button>
             </nav>
           </div>
         </header>
       )}
-      <main className={`flex-1 ${user ? 'pt-32' : 'pt-0'} pb-20 px-4 max-w-7xl mx-auto w-full`}>
+      <main className={`flex-1 ${user && view !== AppView.DOCUMENTATION ? 'pt-32' : 'pt-0'} pb-20 px-4 max-w-7xl mx-auto w-full`}>
         {view === AppView.LANDING && <LandingView onGetStarted={() => openAuth('register')} onLogin={() => openAuth('login')} />}
         {view === AppView.AUTH && <AuthView initialMode={authMode} onBack={() => setView(AppView.LANDING)} />}
         {view === AppView.DASHBOARD && user && <Dashboard user={user} sessions={sessions} onStart={() => setView(AppView.SETUP)} onViewSession={handleViewSession} />}
         {view === AppView.SETUP && <SetupForm initialRole={user?.preferredRole} onStart={(c) => { setCurrentConfig(c); setView(AppView.INTERVIEW); }} onBack={() => setView(AppView.DASHBOARD)} />}
         {view === AppView.INTERVIEW && user && <InterviewSession config={currentConfig} userId={user.id} onFinish={handleFinishSession} onCancel={() => setView(AppView.DASHBOARD)} />}
         {view === AppView.FEEDBACK && activeSession && <FeedbackView session={activeSession} onClose={() => setView(AppView.DASHBOARD)} />}
+        {view === AppView.DOCUMENTATION && <DocumentationView onBack={() => setView(user ? AppView.DASHBOARD : AppView.LANDING)} />}
       </main>
     </div>
   );

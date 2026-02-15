@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { SessionRecord } from '../types';
+import { SessionRecord } from '../types.ts';
 
 interface FeedbackViewProps {
   session: SessionRecord;
@@ -124,44 +124,50 @@ const FeedbackView: React.FC<FeedbackViewProps> = ({ session, onClose }) => {
           </div>
 
           <div className="lg:col-span-8 glass p-10 rounded-3xl space-y-8">
-            <div>
-              <h3 className="text-xl font-bold text-white mb-6">"{currentQ.question}"</h3>
-              <div className="p-6 bg-white/5 rounded-2xl border border-white/10">
-                <span className="text-[9px] font-bold text-slate-500 uppercase tracking-widest block mb-2">Transcripción de Respuesta</span>
-                <p className="text-slate-300 italic text-sm leading-relaxed">"{currentQ.originalResponse}"</p>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-               <div className="p-5 bg-white/5 rounded-xl border border-white/5">
-                  <div className="flex justify-between items-center mb-3">
-                    <span className="text-[9px] font-bold text-blue-400 uppercase tracking-widest">Tono Profesional</span>
-                    <span className="text-sm font-bold text-white">{currentQ.toneScore}%</span>
+            {currentQ ? (
+              <>
+                <div>
+                  <h3 className="text-xl font-bold text-white mb-6">"{currentQ.question}"</h3>
+                  <div className="p-6 bg-white/5 rounded-2xl border border-white/10">
+                    <span className="text-[9px] font-bold text-slate-500 uppercase tracking-widest block mb-2">Transcripción de Respuesta</span>
+                    <p className="text-slate-300 italic text-sm leading-relaxed">"{currentQ.originalResponse}"</p>
                   </div>
-                  <p className="text-[10px] text-slate-400 leading-relaxed">{currentQ.toneExplanation}</p>
-               </div>
-               <div className="p-5 bg-white/5 rounded-xl border border-white/5">
-                  <div className="flex justify-between items-center mb-3">
-                    <span className="text-[9px] font-bold text-emerald-400 uppercase tracking-widest">Asertividad</span>
-                    <span className="text-sm font-bold text-white">{currentQ.assertivenessScore}%</span>
-                  </div>
-                  <p className="text-[10px] text-slate-400 leading-relaxed">{currentQ.assertivenessExplanation}</p>
-               </div>
-            </div>
+                </div>
 
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-               {[
-                 { label: 'Situación', content: currentQ.starAnalysis.situation },
-                 { label: 'Tarea', content: currentQ.starAnalysis.task },
-                 { label: 'Acción', content: currentQ.starAnalysis.action },
-                 { label: 'Resultado', content: currentQ.starAnalysis.result }
-               ].map(x => (
-                 <div key={x.label} className="p-4 bg-white/5 rounded-xl border border-white/5">
-                   <div className="text-[8px] font-bold uppercase tracking-widest mb-2 text-slate-500">{x.label}</div>
-                   <p className="text-[10px] text-slate-400 leading-tight">{x.content || 'No identificado'}</p>
-                 </div>
-               ))}
-            </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                   <div className="p-5 bg-white/5 rounded-xl border border-white/5">
+                      <div className="flex justify-between items-center mb-3">
+                        <span className="text-[9px] font-bold text-blue-400 uppercase tracking-widest">Tono Profesional</span>
+                        <span className="text-sm font-bold text-white">{currentQ.toneScore}%</span>
+                      </div>
+                      <p className="text-[10px] text-slate-400 leading-relaxed">{currentQ.toneExplanation}</p>
+                   </div>
+                   <div className="p-5 bg-white/5 rounded-xl border border-white/5">
+                      <div className="flex justify-between items-center mb-3">
+                        <span className="text-[9px] font-bold text-emerald-400 uppercase tracking-widest">Asertividad</span>
+                        <span className="text-sm font-bold text-white">{currentQ.assertivenessScore}%</span>
+                      </div>
+                      <p className="text-[10px] text-slate-400 leading-relaxed">{currentQ.assertivenessExplanation}</p>
+                   </div>
+                </div>
+
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                   {[
+                     { label: 'Situación', content: currentQ.starAnalysis.situation },
+                     { label: 'Tarea', content: currentQ.starAnalysis.task },
+                     { label: 'Acción', content: currentQ.starAnalysis.action },
+                     { label: 'Resultado', content: currentQ.starAnalysis.result }
+                   ].map(x => (
+                     <div key={x.label} className="p-4 bg-white/5 rounded-xl border border-white/5">
+                       <div className="text-[8px] font-bold uppercase tracking-widest mb-2 text-slate-500">{x.label}</div>
+                       <p className="text-[10px] text-slate-400 leading-tight">{x.content || 'No identificado'}</p>
+                     </div>
+                   ))}
+                </div>
+              </>
+            ) : (
+              <div className="text-center text-slate-500 py-20 uppercase tracking-widest text-[10px]">Seleccione una respuesta para analizar</div>
+            )}
           </div>
         </div>
       )}
