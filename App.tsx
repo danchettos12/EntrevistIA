@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { AppView, SessionConfig, SessionRecord, User } from './types.ts';
 import { DEFAULT_CONFIG } from './constants.ts';
@@ -74,7 +73,10 @@ const App: React.FC = () => {
   };
 
   const handleFinishSession = async (record: SessionRecord) => {
-    const { id: _tmpId, ...sessionData } = record;
+    // Clonamos el objeto omitiendo el ID para que Supabase/LocalStorage genere uno nuevo
+    const sessionData = { ...record };
+    delete (sessionData as any).id;
+
     const saved = await saveSession(sessionData);
     
     if (saved) {
