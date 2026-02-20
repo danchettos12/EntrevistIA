@@ -57,7 +57,7 @@ const PRESETS = [
   }
 ];
 
-const QUESTION_OPTIONS = [3, 5, 8, 10];
+const QUESTION_OPTIONS = [1, 3, 5, 8, 10];
 const TIME_OPTIONS = [
   { label: '1 min', value: 60 },
   { label: '2 min', value: 120 },
