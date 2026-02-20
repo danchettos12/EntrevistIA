@@ -162,29 +162,41 @@ const FeedbackView: React.FC<FeedbackViewProps> = ({ session, onClose }) => {
             ))}
           </div>
 
-          <div className="lg:col-span-8 glass p-10 rounded-[2.5rem] space-y-10 relative border border-white/5">
+          <div className="lg:col-span-8 glass p-10 rounded-[2.5rem] space-y-8 relative border border-white/5 overflow-y-auto max-h-[80vh]">
             {currentQ ? (
               <>
-                <div className="space-y-4">
-                  <span className="text-[10px] font-bold text-blue-400 uppercase tracking-widest">Análisis de Rigurosidad STAR</span>
-                  <h3 className="text-2xl font-bold text-white leading-tight">"{currentQ.question}"</h3>
+                <div className="grid grid-cols-1 gap-6">
+                  <div className="space-y-3">
+                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Pregunta del Entrevistador</span>
+                    <h3 className="text-xl font-bold text-white leading-tight">"{currentQ.question}"</h3>
+                  </div>
+
+                  <div className="space-y-3">
+                    <span className="text-[10px] font-bold text-amber-400 uppercase tracking-widest">Tu Respuesta Transcrita</span>
+                    <div className="p-6 rounded-[1.5rem] bg-white/[0.02] border border-white/10">
+                      <p className="text-sm text-slate-400 italic leading-relaxed">"{currentQ.originalResponse}"</p>
+                    </div>
+                  </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                   {[
-                     { label: 'Situación', content: currentQ.starAnalysis.situation, icon: 'ph-map-pin' },
-                     { label: 'Tarea', content: currentQ.starAnalysis.task, icon: 'ph-clipboard-text' },
-                     { label: 'Acción', content: currentQ.starAnalysis.action, icon: 'ph-lightning' },
-                     { label: 'Resultado', content: currentQ.starAnalysis.result, icon: 'ph-chart-bar' }
-                   ].map(x => (
-                     <div key={x.label} className={`p-6 rounded-[1.5rem] border ${getStatusColor(x.content)} flex flex-col gap-3 transition-all`}>
-                       <div className="flex items-center gap-3">
-                          <i className={`ph-bold ${x.icon} text-lg`}></i>
-                          <div className="text-[10px] font-bold uppercase tracking-widest opacity-60">{x.label}</div>
-                       </div>
-                       <p className="text-xs leading-relaxed font-bold">{x.content || "Información no proporcionada"}</p>
-                     </div>
-                   ))}
+                <div className="pt-6 border-t border-white/5 space-y-6">
+                  <span className="text-[10px] font-bold text-blue-400 uppercase tracking-widest block">Desglose de Estructura STAR</span>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {[
+                      { label: 'Situación', content: currentQ.starAnalysis.situation, icon: 'ph-map-pin' },
+                      { label: 'Tarea', content: currentQ.starAnalysis.task, icon: 'ph-clipboard-text' },
+                      { label: 'Acción', content: currentQ.starAnalysis.action, icon: 'ph-lightning' },
+                      { label: 'Resultado', content: currentQ.starAnalysis.result, icon: 'ph-chart-bar' }
+                    ].map(x => (
+                      <div key={x.label} className={`p-6 rounded-[1.5rem] border ${getStatusColor(x.content)} flex flex-col gap-3 transition-all`}>
+                        <div className="flex items-center gap-3">
+                           <i className={`ph-bold ${x.icon} text-lg`}></i>
+                           <div className="text-[10px] font-bold uppercase tracking-widest opacity-60">{x.label}</div>
+                        </div>
+                        <p className="text-xs leading-relaxed font-bold">{x.content || "Información no proporcionada"}</p>
+                      </div>
+                    ))}
+                  </div>
                 </div>
 
                 <div className="p-8 bg-black/40 rounded-3xl border border-white/5">

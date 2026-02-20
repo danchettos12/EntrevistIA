@@ -87,17 +87,18 @@ export const analyzeQuestionResponse = async (
 
   try {
     const ai = new GoogleGenAI({ apiKey });
-    const prompt = `Actúa como un Coach de Carreras Senior EXTREMADAMENTE RIGUROSO. Analiza esta respuesta de entrevista para el puesto de ${config.role} usando el método STAR.
+    const prompt = `Actúa como un Coach de Carreras Senior EXTREMADAMENTE RIGUROSO. Tu tarea es analizar la RESPUESTA del usuario a una pregunta de entrevista para el puesto de ${config.role} usando el método STAR.
     
-Pregunta: ${question}
-Respuesta: ${userResponse}
+Pregunta del Entrevistador: ${question}
+Respuesta del Candidato: ${userResponse}
 
 Instrucciones Críticas:
-1. Divide la respuesta en Situación, Tarea, Acción y Resultado. Si un componente falta, escribe explícitamente "No detectado en la respuesta".
-2. Sé implacable. Si el Resultado no tiene métricas o impactos claros, penaliza el score.
-3. Genera una 'idealResponse' que sea un ejemplo de nivel C-Suite (CEO/CTO/VP) para esta misma pregunta.
-4. Proporciona feedback directo y accionable.
-5. Los puntajes son de 0 a 100.`;
+1. Analiza EXCLUSIVAMENTE la "Respuesta del Candidato". No analices el texto de la "Pregunta del Entrevistador".
+2. Divide la respuesta en Situación, Tarea, Acción y Resultado. Si un componente falta en la respuesta del candidato, escribe explícitamente "No detectado en la respuesta".
+3. Sé implacable. Si el Resultado no tiene métricas o impactos claros, penaliza el score.
+4. Genera una 'idealResponse' que sea un ejemplo de nivel C-Suite (CEO/CTO/VP) para esta misma pregunta.
+5. Proporciona feedback directo y accionable sobre cómo el candidato puede mejorar su estructura STAR.
+6. Los puntajes son de 0 a 100.`;
     
     const apiCall = ai.models.generateContent({
       model: 'gemini-3-pro-preview',
